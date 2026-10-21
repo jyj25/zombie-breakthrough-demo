@@ -1,72 +1,35 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#101722">
-<title>좀비 돌파 - 러너 데모</title>
-<style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101722;color:#fff;font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;touch-action:none;user-select:none}body{display:grid;place-items:center}.shell{width:min(100vw,56.25dvh);height:100dvh;max-width:520px;position:relative;overflow:hidden;background:#64766e;box-shadow:0 0 48px #0008}.top{height:76px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#182434;border-bottom:1px solid #ffffff25;position:absolute;z-index:2;inset:0 0 auto}.brand{font-size:14px;font-weight:950;letter-spacing:.04em;color:#ffd45d}.stats{display:flex;gap:12px;text-align:right;font-size:10px;color:#c5d2df}.stats b{display:block;color:#fff;font-size:17px}.stage{position:absolute;inset:76px 0 0}.stage canvas{width:100%;height:100%;display:block}.hint{position:absolute;bottom:9px;left:0;right:0;text-align:center;color:#ffffffa8;font-size:11px;pointer-events:none;text-shadow:0 1px 3px #000}.overlay{position:absolute;inset:76px 0 0;display:grid;place-items:center;background:#101722b9;z-index:3;padding:24px;text-align:center}.panel{width:100%;max-width:350px;padding:24px 19px;border:1px solid #ffffff54;background:#1e2a3c;border-radius:12px;box-shadow:0 14px 45px #0008}.panel h1{font-size:26px;margin:0 0 8px;color:#ffd45d}.panel p{font-size:14px;line-height:1.7;color:#d7e2ec;margin:8px 0 20px}.panel button{border:0;background:#ffca4f;color:#292318;padding:13px 24px;font-size:17px;font-weight:900;border-radius:7px;box-shadow:0 4px 0 #a8741e;cursor:pointer}.tag{color:#90f2bc;font-weight:850}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#101722">
+  <meta name="description" content="손가락으로 이동하는 좀비 러너 게임 데모">
+  <title>좀비 돌파 - 러너 데모</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <script type="module" src="./src/main.js"></script>
 </head>
 <body>
-<main class="shell"><header class="top"><div class="brand">🧟 좀비 돌파 <span style="color:#fff8;font-size:10px">RUNNER DEMO</span></div><div class="stats"><div>공격력<b id="power">1</b></div><div>구간<b id="wave">1 / 6</b></div><div>처치<b id="kills">0</b></div></div></header><div class="stage"><canvas id="game"></canvas><div class="hint">마우스 또는 손가락으로 좌우 이동 · 캐릭터는 자동으로 전진</div></div><section class="overlay" id="overlay"><div class="panel"><h1 id="title">좀비 돌파</h1><p id="message">통로를 달리며 좀비 무리를 물리치고<br>숫자 게이트를 골라 공격력을 키우세요.<br><span class="tag">최종 보스 체력 99,999 · 공격력 최대 9,999</span></p><button id="start">게임 시작</button></div></section></main>
-<script>
-(()=>{
-const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d'),$=s=>document.querySelector(s);
-let W=400,H=650,dpr=1,state='title',lane=.5,targetLane=.5,power=1,kills=0,wave=1,bossIndex=0,tick=0,spawnTick=0,shotTick=0,things=[],shots=[],texts=[],boss=null,crew=[];
-const maxPower=9999,bossHP=[300,650,1100,2000,3500,99999],bossNames=['폐허의 덩치','갑옷 좀비','변이 좀비','좀비 기사','거대 좀비','최종 보스'],bossAt=[8,20,35,52,70,90];
-function resize(){const r=canvas.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}new ResizeObserver(resize).observe(canvas);resize();
-function reset(){state='play';lane=targetLane=.5;power=1;kills=0;wave=1;bossIndex=0;tick=0;spawnTick=0;shotTick=0;things=[];shots=[];texts=[];boss=null;crew=[];refreshUI();$('#overlay').classList.add('hidden')}
-function refreshUI(){$('#power').textContent=power.toLocaleString();$('#kills').textContent=kills;$('#wave').textContent=Math.min(wave,6)+' / 6'}
-function pointer(e){if(state!=='play')return;const r=canvas.getBoundingClientRect(),nx=(e.clientX-r.left)/r.width;targetLane=Math.max(.04,Math.min(.96,nx))}canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointer(e)});canvas.addEventListener('pointermove',pointer);$('#start').onclick=reset;
-// Road projection. Every obstacle is drawn and hit-tested in this same perspective space.
-const horizon=()=>H*.055,playerDepth=.88,playerY=()=>projectY(playerDepth);
-function projectY(z){return horizon()+Math.pow(Math.max(0,Math.min(1,z)),1.48)*H*.91}
-function roadHalf(y){let t=Math.max(0,Math.min(1,(y-horizon())/(H*.94-horizon())));return W*(.13+.39*t)}
-function projectX(x,z){let y=projectY(z);return W/2+(x-.5)*roadHalf(y)*2}
-function addText(x,y,text,color='#fff'){texts.push({x,y,text,color,life:70})}
-function addPower(n,x,y){const before=power;power=Math.min(maxPower,power+n);addText(x,y,'+'+(power-before),'#9cffbb');refreshUI()}
-function setCrew(){crew=power>=1000?[-.18,-.09,.09,.18]:power>=100?[-.12,.12]:power>=10?[-.1]:[]}
-function spawn(){if(!boss&&bossIndex<6&&kills>=bossAt[bossIndex]){let i=bossIndex++;boss={x:.5,z:.3,hp:bossHP[i],max:bossHP[i],name:bossNames[i],lane:.5};wave=bossIndex+1;refreshUI();addText(W/2,H*.28,'⚠ '+boss.name,'#ffe16a');return}
-if(bossIndex>=2&&Math.random()<.22){let boost=bossIndex>=4?800:bossIndex>=3?400:200;things.push({kind:'weapon',z:.1,lane:.18,boost,speed:.00145,done:false});return}
-const r=Math.random();if(r<.45){let vals=[2,3,5,10,25,50,99],a=vals[Math.floor(Math.random()*vals.length)],b=vals[Math.floor(Math.random()*vals.length)];things.push({kind:'gate',z:.1,left:a,right:b,speed:.00145,done:false})}else{let count=3+Math.floor(Math.random()*10),x=[.22,.5,.78][Math.floor(Math.random()*3)];things.push({kind:'horde',z:.16,lane:x,count,max:count,speed:.0016+wave*.00008})}}
-function drawRoad(){let hy=horizon();let bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#786d61');bg.addColorStop(.32,'#8e806c');bg.addColorStop(.321,'#61745c');bg.addColorStop(1,'#334c41');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-// banks and concrete running lane
-ctx.fillStyle='#54685d';ctx.beginPath();ctx.moveTo(W/2-W*.16,hy);ctx.lineTo(W/2+W*.16,hy);ctx.lineTo(W/2+W*.53,H);ctx.lineTo(W/2-W*.53,H);ctx.closePath();ctx.fill();
-ctx.fillStyle='#bac1bd';ctx.beginPath();ctx.moveTo(W/2-W*.14,hy);ctx.lineTo(W/2+W*.14,hy);ctx.lineTo(W/2+W*.45,H);ctx.lineTo(W/2-W*.45,H);ctx.closePath();ctx.fill();
-// side rails
-for(const side of [-1,1]){ctx.strokeStyle='#737d7d';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(W/2+side*W*.15,hy);ctx.lineTo(W/2+side*W*.48,H);ctx.stroke();ctx.strokeStyle='#d4d8d3';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W/2+side*W*.137,hy);ctx.lineTo(W/2+side*W*.455,H);ctx.stroke()}
-// dashed center markings that scroll toward the runner
-for(let i=0;i<9;i++){let z=((i/9+tick*.003)%1);let y=projectY(z),size=1+z*3;ctx.fillStyle='#f4f2df';ctx.fillRect(W/2-size,y,size*2,5+z*14)}
-// simplified rocks / scrub by track
-for(let i=0;i<12;i++){let z=((i*.137+tick*.00055)%1),y=projectY(z),s=4+z*12;let x=W/2+(i%2?1:-1)*(roadHalf(y)+s*1.8);ctx.fillStyle=['#68745c','#8b8877','#566958'][i%3];ctx.beginPath();ctx.moveTo(x-s,y);ctx.lineTo(x-s*.4,y-s);ctx.lineTo(x+s*.65,y-s*.55);ctx.lineTo(x+s,y+s*.3);ctx.lineTo(x-s*.3,y+s*.55);ctx.fill()}}
-function drawGate(o){const y=projectY(o.z),half=roadHalf(y)*.94,scale=.34+o.z*.8,x=W/2;let w=half,bar=Math.max(7,scale*12);ctx.fillStyle='#76878d';ctx.fillRect(x-w,y-bar*.65,bar*.45,bar*1.8);ctx.fillRect(x+w-bar*.45,y-bar*.65,bar*.45,bar*1.8);ctx.fillStyle='#252d34';ctx.fillRect(x-w,y-bar*.55,w*2,bar*.5);const mid=x;for(const [cx,n,color] of [[x-w*.5,o.left,'#e4a83d'],[x+w*.5,o.right,'#38a5d5']]){ctx.fillStyle=color;ctx.globalAlpha=.9;ctx.fillRect(cx-w*.47,y-bar*.05,w*.94,bar*.75);ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font=`900 ${Math.max(12,scale*21)}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('+'+n,cx,y+bar*.3)}ctx.fillStyle='#303840';ctx.fillRect(x-w,y+bar*.72,w*2,Math.max(3,bar*.13))}
-function drawWeapon(o){let y=projectY(o.z),x=projectX(o.lane,o.z),s=.4+o.z*.85,w=31*s,h=41*s;ctx.fillStyle='#10375c';ctx.beginPath();ctx.ellipse(x,y+h*.26,w*.58,h*.28,0,0,7);ctx.fill();ctx.fillStyle='#168ded';ctx.fillRect(x-w*.55,y-h*.4,w*1.1,h*.68);ctx.fillStyle='#61caff';ctx.beginPath();ctx.ellipse(x,y-h*.4,w*.55,h*.24,0,0,7);ctx.fill();ctx.fillStyle='#d9f8ff';ctx.font=`900 ${Math.max(10,12*s)}px system-ui`;ctx.textAlign='center';ctx.fillText('무기 +'+o.boost,x,y-h*.7)}
-function drawMiniZombie(x,y,s){ctx.fillStyle='#611f25';ctx.beginPath();ctx.ellipse(x,y+s*.38,s*.48,s*.19,0,0,7);ctx.fill();ctx.fillStyle='#c85554';ctx.fillRect(x-s*.32,y-s*.12,s*.64,s*.52);ctx.fillStyle='#8fbd86';ctx.beginPath();ctx.arc(x,y-s*.2,s*.3,0,7);ctx.fill();ctx.fillStyle='#fff49c';ctx.fillRect(x-s*.16,y-s*.24,s*.09,s*.08);ctx.fillRect(x+s*.08,y-s*.24,s*.09,s*.08);ctx.fillStyle='#423b38';ctx.fillRect(x-s*.22,y+s*.35,s*.16,s*.3);ctx.fillRect(x+s*.06,y+s*.35,s*.16,s*.3)}
-function drawHorde(o){let y=projectY(o.z),scale=.34+o.z*.85,s=5+scale*12,n=Math.max(1,o.count);let rows=Math.ceil(n/6);for(let i=0;i<n;i++){let row=Math.floor(i/6),col=i%6,xx=projectX(o.lane+(col-2.5)*.055,o.z-row*.012),yy=y-row*s*.62;drawMiniZombie(xx,yy,s*.72)}const cx=projectX(o.lane,o.z);ctx.fillStyle='#161c25cc';ctx.beginPath();ctx.roundRect(cx-23*scale,y-s*1.3,46*scale,17*scale,5);ctx.fill();ctx.fillStyle='#fff';ctx.font=`900 ${Math.max(11,13*scale)}px system-ui`;ctx.textAlign='center';ctx.fillText(''+o.count,cx,y-s*.67);}
-function drawBoss(){if(!boss)return;let y=projectY(boss.z),s=.45+boss.z*.85,x=projectX(boss.lane,boss.z),w=W*.26*s,h=66*s;ctx.fillStyle='#3b2029';ctx.beginPath();ctx.ellipse(x,y+h*.46,w*.78,h*.28,0,0,7);ctx.fill();ctx.fillStyle=bossIndex>=5?'#683d72':'#985253';ctx.fillRect(x-w*.47,y-h*.12,w*.94,h*.68);ctx.fillStyle='#b6a38d';ctx.beginPath();ctx.arc(x,y-h*.12,w*.36,0,7);ctx.fill();ctx.fillStyle='#ffe998';ctx.fillRect(x-w*.2,y-h*.16,6*s,4*s);ctx.fillRect(x+w*.1,y-h*.16,6*s,4*s);ctx.fillStyle='#101820cc';ctx.fillRect(W*.12,17,W*.76,12);ctx.fillStyle='#ef5361';ctx.fillRect(W*.12,17,W*.76*Math.max(0,boss.hp/boss.max),12);ctx.fillStyle='white';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText(boss.name+'  '+Math.ceil(boss.hp).toLocaleString(),W/2,14)}
-function drawPlayer(){let y=playerY(),x=projectX(lane,playerDepth),s=Math.max(.7,Math.min(1.2,W/390));for(let offset of crew){let ax=projectX(lane+offset,playerDepth);drawRunner(ax,y+5*s,s*.68,'#2789db')}drawRunner(x,y,s,'#168ded');ctx.fillStyle='#102036cc';ctx.beginPath();ctx.roundRect(x-31*s,y-56*s,62*s,20*s,7);ctx.fill();ctx.fillStyle='#fff';ctx.font=`900 ${14*s}px system-ui`;ctx.textAlign='center';ctx.fillText(power.toLocaleString(),x,y-42*s)}
-function drawRunner(x,y,s,color){ctx.save();ctx.translate(x,y);ctx.scale(s,s);let run=Math.sin(tick*.35)*3;ctx.fillStyle='#192b37';ctx.beginPath();ctx.ellipse(0,2,13,5,0,0,7);ctx.fill();ctx.strokeStyle='#172b42';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-3,-1);ctx.lineTo(-7+run,-13);ctx.lineTo(-9-run,-23);ctx.moveTo(4,-1);ctx.lineTo(8-run,-13);ctx.lineTo(9+run,-22);ctx.stroke();ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(-8,-36,16,23,5);ctx.fill();ctx.fillStyle='#a6d4ef';ctx.fillRect(-5,-34,10,3);ctx.strokeStyle='#f2c7a3';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-7,-31);ctx.lineTo(-13-run,-20);ctx.moveTo(7,-31);ctx.lineTo(13+run,-22);ctx.stroke();ctx.fillStyle='#efc19f';ctx.beginPath();ctx.arc(0,-43,8,0,7);ctx.fill();ctx.fillStyle='#168ded';ctx.beginPath();ctx.arc(0,-46,8,Math.PI,0);ctx.fill();ctx.fillRect(-8,-46,16,4);ctx.restore()}
-function draw(){drawRoad();const ordered=[...things].sort((a,b)=>a.z-b.z);for(const o of ordered){if(o.kind==='gate')drawGate(o);else if(o.kind==='weapon')drawWeapon(o);else drawHorde(o)}if(boss)drawBoss();drawPlayer();for(const b of shots){let y=projectY(b.z),x=projectX(b.lane,b.z);ctx.fillStyle='#49b9ff';ctx.beginPath();ctx.ellipse(x,y,3+b.z*2,7+b.z*5,0,0,7);ctx.fill()}for(const t of texts){ctx.globalAlpha=Math.min(1,t.life/25);ctx.fillStyle=t.color;ctx.font='900 17px system-ui';ctx.textAlign='center';ctx.fillText(t.text,t.x,t.y);ctx.globalAlpha=1}}
-function shoot(){shots.push({lane,z:playerDepth-.02})}
-function hitPlayer(o){let y=projectY(o.z),px=projectX(lane,playerDepth),ox=projectX(o.lane,o.z);let objScale=.34+o.z*.85;let radius=o.kind==='boss'?W*.13*objScale:Math.max(10,12*objScale);let vertical=Math.abs(y-playerY());return vertical < (o.kind==='boss'?34:20)*Math.max(.8,W/390)&&Math.abs(px-ox)<radius+12}
-function defeatBoss(){const name=boss.name;boss=null;kills+=4;refreshUI();addText(W/2,H*.35,name+' 격파!','#ffe16a');if(name===bossNames[5])win()}
-function gameover(){state='over';$('#title').textContent='게임 오버';$('#message').innerHTML='좀비 무리가 캐릭터와 부딪혔어요.<br>처치 <b>'+kills+'</b> · 공격력 <b>'+power.toLocaleString()+'</b><br><span class="tag">다시 달려 최종 보스에 도전하세요.</span>';$('#start').textContent='다시 시작';$('#overlay').classList.remove('hidden')}
-function win(){state='win';$('#title').textContent='최종 보스 격파!';$('#message').innerHTML='99,999 체력의 최종 보스를 물리쳤습니다!<br>최종 공격력 <b>'+power.toLocaleString()+'</b>';$('#start').textContent='다시 플레이';$('#overlay').classList.remove('hidden')}
-function update(){if(state!=='play')return;tick++;lane+=(targetLane-lane)*.18;if(++spawnTick>104){spawn();spawnTick=0}if(++shotTick>17){shoot();shotTick=0}
-for(const o of things)o.z+=o.speed;
-for(const s of shots)s.z-=.035;
-for(const s of shots){let x=projectX(s.lane,s.z);if(boss&&s.z<boss.z+.1&&s.z>boss.z-.08&&Math.abs(x-projectX(boss.lane,boss.z))<W*.22){boss.hp-=power;s.z=-2;if(boss.hp<=0)defeatBoss();continue}
-for(const o of things){if(o.kind!=='horde'||o.count<=0)continue;let gap=Math.abs(s.z-o.z),dx=Math.abs(projectX(s.lane,s.z)-projectX(o.lane,o.z));if(gap<.035&&dx<W*(.035+o.z*.04)){let lost=Math.min(o.count,power);o.count-=lost;kills+=lost;refreshUI();if(o.count<=0){addText(projectX(o.lane,o.z),projectY(o.z),'처치!','#dcffb2');o.z=-5}s.z=-2;break}}}
-for(const o of things){if(o.kind==='gate'&&!o.done&&o.z>=playerDepth-.025){o.done=true;let n=lane<.5?o.left:o.right;addPower(n,projectX(lane,playerDepth),playerY()-48);setCrew()}
-if(o.kind==='weapon'&&!o.done&&o.z>=playerDepth-.025){o.done=true;if(Math.abs(lane-o.lane)<.22){addPower(o.boost,projectX(o.lane,o.z),playerY()-48);setCrew()}}
-if(o.kind==='horde'&&o.z>=playerDepth-.015&&o.count>0){if(hitPlayer(o)){gameover();return}else{o.count=0;o.z=-5}}
-if(o.z>1.04)o.z=-5}
-if(boss){boss.z+=.0011+wave*.00002;if(boss.z>=playerDepth-.015){if(hitPlayer({kind:'boss',lane:boss.lane,z:boss.z})){gameover();return}else boss.z=-5}}
-things=things.filter(o=>o.z>-1);shots=shots.filter(s=>s.z>-.2);for(const t of texts){t.y-=.55;t.life--}texts=texts.filter(t=>t.life>0);refreshUI()}
-function loop(){update();draw();requestAnimationFrame(loop)}loop();
-})();
-</script>
+  <main class="game-shell">
+    <header class="game-header">
+      <div class="brand">좀비 돌파 <span>RUNNER DEMO</span></div>
+      <div class="stats" aria-live="polite">
+        <div>공격력<b id="power">1</b></div>
+        <div>구간<b id="wave">1 / 6</b></div>
+        <div>처치<b id="kills">0</b></div>
+      </div>
+    </header>
+    <section class="game-stage" aria-label="게임 화면">
+      <canvas id="game-canvas" aria-label="좀비 돌파 게임 플레이 영역"></canvas>
+      <div class="control-hint">마우스 또는 손가락으로 좌우 이동 · 캐릭터는 자동 전진</div>
+    </section>
+    <section class="game-overlay" id="game-overlay" aria-modal="true" role="dialog">
+      <div class="dialog">
+        <h1 id="dialog-title">좀비 돌파</h1>
+        <p id="dialog-message">통로를 달리며 좀비 무리를 물리치고<br>숫자 게이트를 골라 공격력을 키우세요.<br><strong>최종 보스 체력 99,999 · 공격력 최대 9,999</strong></p>
+        <button id="start-button" type="button">게임 시작</button>
+      </div>
+    </section>
+  </main>
 </body>
 </html>
