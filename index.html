@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#111522">
+<title>좀비 돌파 - 데모</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111522;color:#f5f4e9;font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;touch-action:none;user-select:none}body{display:grid;place-items:center}.shell{height:100dvh;width:min(100vw,56.25dvh);max-width:520px;position:relative;background:#171d2b;overflow:hidden;box-shadow:0 0 50px #0009}.top{height:78px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#222a3b;border-bottom:2px solid #39445a;z-index:2;position:relative}.brand{font-size:14px;font-weight:900;letter-spacing:.08em;color:#ffd45d}.stats{display:flex;gap:12px;text-align:right;font-size:11px;color:#bac4d6}.stats b{display:block;color:white;font-size:17px}.stage{position:absolute;inset:78px 0 0}.stage canvas{width:100%;height:100%;display:block}.hint{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:#cbd3df88;font-size:11px;pointer-events:none}.overlay{position:absolute;inset:78px 0 0;display:grid;place-items:center;background:#101522c9;z-index:3;padding:24px;text-align:center}.panel{width:100%;max-width:340px;padding:25px 20px;border:2px solid #5b657a;background:#20283a;box-shadow:7px 7px 0 #0b0f18;border-radius:8px}.panel h1{font-size:27px;margin:0 0 8px;color:#ffd45d}.panel p{font-size:14px;line-height:1.65;color:#d5dbea;margin:8px 0 20px}.panel button{border:0;background:#ffca4f;color:#2b2414;padding:13px 24px;font-size:17px;font-weight:900;border-radius:5px;box-shadow:0 4px 0 #a8741e;cursor:pointer}.panel button:active{transform:translateY(3px);box-shadow:0 1px 0 #a8741e}.hidden{display:none!important}.tag{color:#91e5c3;font-weight:800}.foot{position:absolute;top:58px;right:12px;color:#f6f0cf88;font-size:10px;z-index:2}
+</style>
+</head>
+<body>
+<main class="shell" id="shell">
+ <header class="top"><div class="brand">🧟 좀비 돌파 <span style="color:#fff8;font-size:10px">DEMO</span></div><div class="stats"><div>공격력<b id="power">1</b></div><div>구간<b id="wave">1 / 6</b></div><div>처치<b id="kills">0</b></div></div></header>
+ <div class="foot">최대 공격력 9,999</div>
+ <div class="stage"><canvas id="game"></canvas><div class="hint" id="hint">마우스 또는 손가락으로 좌우 이동 · 자동 공격</div></div>
+ <section class="overlay" id="overlay"><div class="panel"><h1 id="title">좀비 돌파</h1><p id="message">내려오는 좀비를 물리치고 공격력을 키워 보세요!<br><span class="tag">+N 표적을 맞히면 공격력 N 증가</span><br>최종 보스 체력은 99,999입니다.</p><button id="start">게임 시작</button></div></section>
+</main>
+<script>
+(()=>{
+const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d'),shell=document.querySelector('#shell');
+const $=s=>document.querySelector(s);let W=400,H=650,dpr=1,state='title',playerX=.5,power=1,kills=0,wave=1,bossIndex=0,frame=0,spawnTick=0,shotTick=0,enemyTick=0,items=[],bullets=[],particles=[],boss=null,invuln=0,shake=0;
+const bossHP=[300,650,1050,2000,3500,99999],bossNames=['폐허의 덩치','갑옷 좀비','변이체','저주받은 기사','거대 좀비','최종 보스'];
+function resize(){let r=canvas.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}new ResizeObserver(resize).observe(canvas);resize();
+function reset(){state='play';playerX=.5;power=1;kills=0;wave=1;bossIndex=0;frame=0;spawnTick=0;shotTick=0;enemyTick=0;items=[];bullets=[];particles=[];boss=null;invuln=0;$('#wave').textContent='1 / 6';$('#kills').textContent='0';$('#overlay').classList.add('hidden');$('#hint').textContent='마우스 또는 손가락으로 좌우 이동 · 자동 공격'}
+function pointer(e){if(state!=='play')return;let r=canvas.getBoundingClientRect();playerX=Math.max(.09,Math.min(.91,(e.clientX-r.left)/r.width))}canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointer(e)});canvas.addEventListener('pointermove',pointer);
+$('#start').onclick=reset;
+function addPower(n,x,y){let old=power;power=Math.min(9999,power+n);burst(x,y,'+'+(power-old),'#76efb1');}
+function burst(x,y,t,c){particles.push({x,y,life:50,text:t,color:c,vy:-.65})}
+function spawnEnemy(){let thresholds=[8,20,35,52,70,90];if(bossIndex<6&&kills>=thresholds[bossIndex]){let i=bossIndex;boss={x:W/2,y:-65,w:Math.min(W*.48,180),h:60,hp:bossHP[i],max:bossHP[i],name:bossNames[i],speed:i===0?0.3:.42};bossIndex++;wave=bossIndex+1;$('#wave').textContent=Math.min(wave,6)+' / 6';burst(W/2,H*.33,'⚠ '+boss.name+' 등장','#ffd45d');return}
+let r=Math.random();if(r<.16){let n=[1,2,3,5,10,25,50,99][Math.floor(Math.random()*8)];items.push({kind:'bonus',n,x:W*(.15+Math.random()*.7),y:-25,r:17,vy:1.05+wave*.12})}else{let hp=wave>=6?Math.max(1,Math.floor(power*.12)):1;items.push({kind:'zombie',hp,max:hp,x:W*(.1+Math.random()*.8),y:-32,r:15+Math.random()*3,vy:1.15+wave*.2})}}
+function shoot(){let count=power>=1000?3:power>=100?2:power>=10?2:1;for(let i=0;i<count;i++){let offset=(i-(count-1)/2)*13;bullets.push({x:W*playerX+offset,y:H-70,vy:-7.5,damage:power})}}
+function draw(){ctx.clearRect(0,0,W,H);let sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#202b3b');sky.addColorStop(.64,'#2c3540');sky.addColorStop(.65,'#303b35');sky.addColorStop(1,'#202b29');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+// retro grid and distant ruins
+ctx.strokeStyle='#a6b8c21a';ctx.lineWidth=1;for(let x=0;x<W;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+for(let i=0;i<7;i++){let x=(i*83+17)%W,h=30+(i*29)%65;ctx.fillStyle='#161d27';ctx.fillRect(x,H*.26-h,28,h);ctx.fillStyle='#e4b95433';for(let yy=H*.26-h+8;yy<H*.26-5;yy+=14)ctx.fillRect(x+7,yy,5,6)}
+// lane markers
+ctx.setLineDash([6,9]);ctx.strokeStyle='#f3d99326';ctx.beginPath();ctx.moveTo(W*.08,0);ctx.lineTo(W*.08,H);ctx.moveTo(W*.92,0);ctx.lineTo(W*.92,H);ctx.stroke();ctx.setLineDash([]);
+for(let b of bullets){ctx.fillStyle='#ffe17e';ctx.fillRect(b.x-2,b.y-8,4,12);ctx.fillStyle='#fff8c7';ctx.fillRect(b.x-1,b.y-8,2,5)}
+for(let o of items){if(o.kind==='bonus'){ctx.fillStyle='#18362f';ctx.strokeStyle='#77e8a9';ctx.lineWidth=3;ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#8fffc0';ctx.font='900 13px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('+'+o.n,o.x,o.y)}else drawZombie(o)}
+if(boss)drawBoss();
+// little crew
+let crew=power>=1000?3:power>=100?2:power>=10?1:0;for(let i=0;i<crew;i++)drawHero(W*playerX+(i-(crew-1)/2)*20,H-49,0.63,'#50b9c9');drawHero(W*playerX,H-53,1,'#f4c35a');
+ctx.fillStyle='#dce4ed';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText('공격력 '+power,W*playerX,H-15);
+for(let p of particles){ctx.globalAlpha=Math.max(0,p.life/50);ctx.fillStyle=p.color;ctx.font='900 15px system-ui';ctx.textAlign='center';ctx.fillText(p.text,p.x,p.y);ctx.globalAlpha=1}
+if(invuln>0){ctx.strokeStyle='#ff637b';ctx.lineWidth=3;ctx.beginPath();ctx.arc(W*playerX,H-52,23,0,Math.PI*2);ctx.stroke()}
+}
+function drawHero(x,y,s,color){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.fillStyle='#17212a';ctx.fillRect(-11,9,22,16);ctx.fillStyle=color;ctx.fillRect(-10,-7,20,22);ctx.fillStyle='#f1cbaa';ctx.fillRect(-8,-19,16,14);ctx.fillStyle='#25252c';ctx.fillRect(-10,-21,20,6);ctx.fillStyle='#ffe989';ctx.fillRect(-3,-16,3,3);ctx.fillStyle='#b6c9d4';ctx.fillRect(-3,-31,6,16);ctx.restore()}
+function drawZombie(o){ctx.save();ctx.translate(o.x,o.y);let color=o.hp>1?'#9c71b9':'#77a872';ctx.fillStyle='#172019';ctx.fillRect(-12,7,24,15);ctx.fillStyle=color;ctx.fillRect(-12,-10,24,23);ctx.fillStyle='#a9b88c';ctx.fillRect(-10,-23,20,15);ctx.fillStyle='#e9e89b';ctx.fillRect(-6,-18,4,4);ctx.fillRect(3,-18,4,4);ctx.fillStyle='#1a2023';ctx.fillRect(-3,-10,7,3);ctx.restore();if(o.hp>1){ctx.fillStyle='#191923';ctx.fillRect(o.x-18,o.y-31,36,4);ctx.fillStyle='#ff6870';ctx.fillRect(o.x-18,o.y-31,36*Math.max(0,o.hp/o.max),4)}}
+function drawBoss(){let b=boss;ctx.save();ctx.translate(b.x,b.y);ctx.fillStyle='#251a2d';ctx.fillRect(-b.w*.53,b.h*.02,b.w*1.06,b.h*.75);ctx.fillStyle=wave<=2?'#a95965':'#805e9d';ctx.fillRect(-b.w*.48,-b.h*.25,b.w*.96,b.h*.55);ctx.fillStyle='#b9aa8e';ctx.fillRect(-b.w*.33,-b.h*.52,b.w*.66,b.h*.35);ctx.fillStyle='#ffed9c';ctx.fillRect(-b.w*.22,-b.h*.39,8,6);ctx.fillRect(b.w*.14,-b.h*.39,8,6);ctx.fillStyle='#1f2227';ctx.fillRect(-b.w*.1,-b.h*.27,b.w*.2,5);ctx.restore();ctx.fillStyle='#191923';ctx.fillRect(W*.12,30,W*.76,10);ctx.fillStyle='#f05264';ctx.fillRect(W*.12,30,W*.76*Math.max(0,b.hp/b.max),10);ctx.fillStyle='white';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(b.name+'  '+Math.ceil(b.hp).toLocaleString()+' / '+b.max.toLocaleString(),W/2,24)}
+function update(){if(state!=='play')return;frame++;if(invuln>0)invuln--;if(++shotTick>=13){shoot();shotTick=0}if(++spawnTick>Math.max(24,68-wave*5)&&!boss){spawnEnemy();spawnTick=0}
+for(let b of bullets)b.y+=b.vy;
+for(let o of items)o.y+=o.vy;
+for(let b of bullets){if(boss&&b.y>boss.y-boss.h*.5&&b.y<boss.y+boss.h*.45&&Math.abs(b.x-boss.x)<boss.w*.53){boss.hp-=b.damage;b.y=-999;if(boss.hp<=0){let finalDown=boss.name===bossNames[5];burst(boss.x,boss.y,'보스 격파!','#ffd45d');boss=null;kills+=4;$('#kills').textContent=kills;if(finalDown)win()}continue}
+for(let o of items){if(o.y< -500)continue;if(Math.hypot(b.x-o.x,b.y-o.y)<o.r+4){if(o.kind==='bonus'){addPower(o.n,o.x,o.y);o.y=H+200}else{o.hp-=b.damage;if(o.hp<=0){o.y=H+200;kills++;$('#kills').textContent=kills;burst(o.x,o.y,'처치!','#c5ef9a')}}b.y=-999;break}}}
+if(boss){boss.y+=boss.y<115?boss.speed:Math.sin(frame/45)*.16; if(boss.y>H-130&&invuln<=0){gameover('보스에게 밀려났어요!')}}
+for(let o of items){if(o.y>H-100&&o.kind==='zombie'&&Math.abs(o.x-W*playerX)<23&&invuln<=0){gameover('좀비가 플레이어에게 닿았어요!');break}if(o.y>H+45)o.y=-999}
+bullets=bullets.filter(b=>b.y>-30);items=items.filter(o=>o.y<H+100);particles.forEach(p=>{p.y+=p.vy;p.life--});particles=particles.filter(p=>p.life>0);$('#power').textContent=power.toLocaleString();}
+function gameover(msg){state='over';$('#title').textContent='게임 오버';$('#message').innerHTML=msg+'<br>처치 <b>'+kills+'</b> · 공격력 <b>'+power.toLocaleString()+'</b><br><span class="tag">다시 도전해 최종 보스를 물리쳐 보세요.</span>';$('#start').textContent='다시 시작';$('#overlay').classList.remove('hidden')}
+function win(){state='win';$('#title').textContent='최종 보스 격파!';$('#message').innerHTML='좀비 무리를 모두 물리쳤습니다!<br>최종 공격력 <b>'+power.toLocaleString()+'</b>';$('#start').textContent='다시 플레이';$('#overlay').classList.remove('hidden')}
+function loop(){update();draw();requestAnimationFrame(loop)}loop();
+})();
+</script>
+</body>
+</html>
