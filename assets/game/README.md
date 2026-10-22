@@ -2,7 +2,7 @@
 
 Runtime image assets are grouped by use:
 
-- `characters/`: transparent roster portraits and flight intro cutout
+- `characters/`: transparent roster portraits in the supplied image's numbered 1–5 order, plus the flight intro cutout
 - `enemies/`: transparent green and pink enemies
 - `bosses/`: transparent Siren encounter and victory art
 - `weapons/`: weapon pickups and hand-held weapon art

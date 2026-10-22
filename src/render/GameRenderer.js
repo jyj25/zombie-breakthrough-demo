@@ -9,8 +9,9 @@ export class GameRenderer {
     this.images = {};
     const files = {
       flight: 'characters/flight-cutout.png', siren: 'bosses/siren-cutout.png', win: 'bosses/siren-win-cutout.png', ocean: 'backgrounds/ocean.png',
+      // Roster follows the handwritten 1–5 order on the supplied lineup reference.
       crew1: 'characters/chiikawa.png', crew2: 'characters/hachiwore.png', crew3: 'characters/usagi.png',
-      crew4: 'characters/rakkko.png', crew5: 'characters/kurimanju.png',
+      crew4: 'characters/crew-04.png', crew5: 'characters/crew-05.png',
       bowl: 'weapons/weapon-bowl-cutout.png', forkPink: 'weapons/weapon-fork-pink.svg', forkBlue: 'weapons/weapon-fork-blue.svg',
       stick: 'weapons/weapon-stick-cutout.png', sword: 'weapons/weapon-sword.svg', enemyGreen: 'enemies/enemy-green.png', enemyPink: 'enemies/enemy-pink.png',
     };
