@@ -29,7 +29,7 @@
 | 2,000 | 랏코 |
 | 4,000 | 쿠리만쥬 |
 
-캐릭터는 참고 이미지를 바탕으로 Canvas 벡터로 그립니다. 세이렌, 비행 오프닝, 무기, 성공 및 실패 화면은 `assets/game/`의 이미지 에셋을 사용합니다.
+토벌대 캐릭터는 제공된 2D 이미지에서 분리한 투명 PNG를 사용합니다. 원본 참고 이미지는 `assets/game/references/`에 보관하고, 투명 배경 에셋은 캐릭터·적·보스·무기별 폴더로 나누었습니다.
 
 ## 프로젝트 구조
 
@@ -39,9 +39,10 @@
 - `src/render/GameRenderer.js`: 배경, 캐릭터, 무기, 전투 연출 Canvas 렌더링
 - `src/ui/GameUI.js`: 시작, 실패, 성공 대화상자와 HUD
 - `src/config.js`: 공격력, 발사, 동료 합류 및 세이렌 설정
-- `assets/game/`: 게임에서 사용하는 이미지
+- `assets/game/characters/`, `enemies/`, `bosses/`, `weapons/`, `backgrounds/`: 게임에서 사용하는 분류별 이미지
+- `assets/game/references/`: 제공된 원본 및 참고 이미지
 
-새 동료 기준이나 발사 속도를 조절하려면 `src/config.js`를 수정하세요. 캐릭터 모양과 해변 연출은 `src/render/GameRenderer.js`에서 관리합니다.
+새 동료 기준이나 발사 속도를 조절하려면 `src/config.js`를 수정하세요. 캐릭터 크기와 해변 연출은 `src/render/GameRenderer.js`에서 관리합니다.
 
 ## 실행 및 배포
 

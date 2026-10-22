@@ -11,7 +11,7 @@ const wait=img=>img.complete&&img.naturalWidth?Promise.resolve():new Promise(res
 const setup=id=>new GameRenderer(document.getElementById(id));
 const crew=setup('crew'), weapons=setup('weapons'), boss=setup('boss');
 await Promise.all(Object.values(crew.images).map(wait)); await Promise.all(Object.values(weapons.images).map(wait)); await Promise.all(Object.values(boss.images).map(wait));
-let c=crew.context;c.fillStyle='#eee1c9';c.fillRect(0,0,crew.width,crew.height);['white','chiikawa','hachiwore','usagi','rakkko','kurimanju'].forEach((kind,i)=>crew.drawHamster(90+i*164,176,1.55,kind,0));
+let c=crew.context;c.fillStyle='#eee1c9';c.fillRect(0,0,crew.width,crew.height);['chiikawa','hachiwore','usagi','rakkko','kurimanju'].forEach((kind,i)=>{const image=crew.images[`crew${i+1}`],h=122,w=h*image.naturalWidth/image.naturalHeight;c.drawImage(image,55+i*180,32,w,h);});
 c=weapons.context;c.fillStyle='#eee1c9';c.fillRect(0,0,weapons.width,weapons.height);['bowl','forkPink','forkBlue','stick','sword'].forEach((key,i)=>weapons.drawWeapon({weaponKey:key==='forkPink'||key==='forkBlue'?'fork':key,weaponVariant:key==='forkBlue'?'blue':'pink',bonus:[50,100,100,500,1000][i],lane:[.12,.31,.48,.68,.88][i],depth:.88}));
 c=boss.context;c.fillStyle='#183f67';c.fillRect(0,0,boss.width,boss.height);const ocean=boss.images.ocean;c.globalAlpha=.8;c.drawImage(ocean,0,0,boss.width,boss.height);c.globalAlpha=1;c.shadowColor='#081b36aa';c.shadowBlur=18;c.drawImage(boss.images.siren,290,10,420,420);c.shadowBlur=0;
 </script></html>

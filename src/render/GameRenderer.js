@@ -8,9 +8,11 @@ export class GameRenderer {
     this.pixelRatio = 1;
     this.images = {};
     const files = {
-      flight: 'flight-cutout.png', siren: 'siren-cutout.png', win: 'siren-win.png', ocean: 'ocean.png',
-      bowl: 'weapon-bowl-cutout.png', forkPink: 'weapon-fork-pink.svg', forkBlue: 'weapon-fork-blue.svg',
-      stick: 'weapon-stick-cutout.png', sword: 'weapon-sword.svg', enemyGreen: 'enemy-green.png', enemyPink: 'enemy-pink.png',
+      flight: 'characters/flight-cutout.png', siren: 'bosses/siren-cutout.png', win: 'bosses/siren-win-cutout.png', ocean: 'backgrounds/ocean.png',
+      crew1: 'characters/chiikawa.png', crew2: 'characters/hachiwore.png', crew3: 'characters/usagi.png',
+      crew4: 'characters/rakkko.png', crew5: 'characters/kurimanju.png',
+      bowl: 'weapons/weapon-bowl-cutout.png', forkPink: 'weapons/weapon-fork-pink.svg', forkBlue: 'weapons/weapon-fork-blue.svg',
+      stick: 'weapons/weapon-stick-cutout.png', sword: 'weapons/weapon-sword.svg', enemyGreen: 'enemies/enemy-green.png', enemyPink: 'enemies/enemy-pink.png',
     };
     for (const [key, file] of Object.entries(files)) {
       const image = new Image();
@@ -199,7 +201,7 @@ export class GameRenderer {
     ctx.fillStyle = '#0b2e4d22'; ctx.fillRect(0, 0, w, h);
     ctx.save(); ctx.translate(w * 0.5, y); ctx.rotate((1 - progress) * -0.08);
     if (image?.complete && image.naturalWidth) ctx.drawImage(image, -size / 2, -size * 0.58, size, size * 1.16);
-    else this.drawHamster(w * 0.5, y, size * 0.35, 'chiikawa', introTick);
+    else this.drawCrewMember(this.images.crew1, w * 0.5, y, size * 0.44, introTick);
     ctx.restore();
     ctx.fillStyle = '#ffffffec'; ctx.textAlign = 'center'; ctx.font = `1000 ${Math.max(22, w * 0.075)}px system-ui`;
     ctx.shadowColor = '#17466b'; ctx.shadowBlur = 12; ctx.fillText(progress < 0.6 ? '치이카와 토벌대 출동!' : '세이렌 토벌 장소 도착!', w / 2, h * 0.16); ctx.shadowBlur = 0;
@@ -253,7 +255,6 @@ export class GameRenderer {
       ctx.save(); ctx.shadowColor = '#0a193e77'; ctx.shadowBlur = 12;
       ctx.drawImage(image, x - size * 0.42, y - size * 0.42, size * 0.84, size * 0.84); ctx.restore();
     }
-    else this.drawHamster(x, y, size * 0.35, 'siren', 0);
     ctx.fillStyle = '#09223fdc'; ctx.beginPath(); ctx.roundRect(w * 0.12, 20, w * 0.76, 18, 8); ctx.fill();
     ctx.fillStyle = '#ff6f8e'; ctx.beginPath(); ctx.roundRect(w * 0.12, 20, w * 0.76 * Math.max(0, boss.health / boss.maxHealth), 18, 8); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.font = `1000 ${Math.max(12, w * 0.038)}px system-ui`; ctx.textAlign = 'center';
@@ -266,54 +267,20 @@ export class GameRenderer {
 
   drawPlayer(player, tick) {
     const y = this.projectY(player.depth), x = this.projectX(player.lane, player.depth), scale = Math.max(0.7, Math.min(1.18, this.width / 390));
-    const roster = ['hachiwore', 'usagi', 'rakkko', 'kurimanju'];
-    player.crewOffsets.forEach((offset, index) => this.drawHamster(this.projectX(player.lane + offset, player.depth), y + 4 * scale, scale * 0.78, roster[index], tick));
-    this.drawHamster(x, y, scale, 'chiikawa', tick);
+    player.crewOffsets.forEach((offset, index) => this.drawCrewMember(this.images[`crew${index + 2}`], this.projectX(player.lane + offset, player.depth), y + 4 * scale, scale * 0.8, tick));
+    this.drawCrewMember(this.images.crew1, x, y, scale, tick);
     const ctx = this.context; ctx.fillStyle = '#fff9e7ee'; ctx.beginPath(); ctx.roundRect(x - 39 * scale, y - 74 * scale, 78 * scale, 23 * scale, 9); ctx.fill();
     const label = player.shotMultiplier > 1 ? `${player.power.toLocaleString()} ×${player.shotMultiplier}` : player.power.toLocaleString();
     ctx.fillStyle = '#44372e'; ctx.font = `1000 ${14 * scale}px system-ui`; ctx.textAlign = 'center'; ctx.fillText(label, x, y - 58 * scale);
     this.drawHeldWeapon(player, x, y, scale);
   }
 
-  drawHamster(x, y, scale, kind, tick) {
-    const ctx = this.context, bob = Math.sin(tick * 0.19 + x) * 1.5 * scale;
-    const palettes = {
-      white: ['#fffef7', '#f5e8d8'], chiikawa: ['#fffef7', '#f4e7d4'], hachiwore: ['#f8f5e9', '#72b8df'],
-      usagi: ['#fff5dc', '#f1d987'], rakkko: ['#f5eee0', '#385a76'], kurimanju: ['#d9c1a3', '#956c4d'], siren: ['#fffef7', '#dc4d63'],
-    };
-    const [fur, accent] = palettes[kind] || palettes.white;
-    ctx.save(); ctx.translate(x, y + bob); ctx.scale(scale, scale);
-    // Tiny paws and soft pear-shaped body.
-    // Soft layered shading and a fuller silhouette bring the crew closer to the supplied 2D art.
-    const body = ctx.createRadialGradient(-5, -29, 2, 0, -18, 23);
-    body.addColorStop(0, '#ffffff'); body.addColorStop(0.58, fur); body.addColorStop(1, kind === 'kurimanju' ? '#a77d60' : '#ddcec0');
-    ctx.fillStyle = '#a47855'; ctx.beginPath(); ctx.ellipse(-8, -1, 3.5, 5, 0, 0, Math.PI * 2); ctx.ellipse(8, -1, 3.5, 5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = body; ctx.strokeStyle = '#4b3834'; ctx.lineWidth = 1.35;
-    ctx.beginPath(); ctx.ellipse(0, -17, 14.5, 18.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(-9, -29, 4.4, 5.2, -0.12, 0, Math.PI * 2); ctx.ellipse(9, -29, 4.4, 5.2, 0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(-10, -33, 1.6, 2.1, 0, 0, Math.PI * 2); ctx.ellipse(8, -33, 1.6, 2.1, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = accent;
-    if (kind === 'usagi') {
-      ctx.beginPath(); ctx.ellipse(-5, -43, 3.4, 11, -0.14, 0, Math.PI * 2); ctx.ellipse(5, -43, 3.4, 11, 0.14, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#efb3b3'; ctx.beginPath(); ctx.ellipse(-5, -43, 1.3, 7, -0.14, 0, Math.PI * 2); ctx.ellipse(5, -43, 1.3, 7, 0.14, 0, Math.PI * 2); ctx.fill();
-    } else if (kind === 'hachiwore') {
-      ctx.beginPath(); ctx.moveTo(-11, -31); ctx.lineTo(-9, -38); ctx.lineTo(-2, -32); ctx.lineTo(2, -38); ctx.lineTo(11, -31); ctx.closePath(); ctx.fill();
-    } else if (kind === 'chiikawa') {
-      ctx.fillStyle = '#6f9d63'; ctx.beginPath(); ctx.moveTo(-10, -11); ctx.quadraticCurveTo(0, -6, 10, -11); ctx.lineTo(9, -5); ctx.quadraticCurveTo(0, -2, -9, -5); ctx.closePath(); ctx.fill();
-      for (let i = 0; i < 5; i++) { const fx = -8 + i * 4; ctx.fillStyle = '#fff7d3'; ctx.beginPath(); ctx.arc(fx, -32 + Math.abs(2 - i) * 0.8, 1.6, 0, Math.PI * 2); ctx.fill(); }
-      ctx.fillStyle = '#e88f8d'; ctx.beginPath(); ctx.arc(0, -32, 1.6, 0, Math.PI * 2); ctx.fill();
-    } else if (kind === 'rakkko') {
-      ctx.fillRect(-11, -12, 22, 10); ctx.beginPath(); ctx.moveTo(-11, -2); ctx.lineTo(-8, 3); ctx.lineTo(-5, -2); ctx.lineTo(-2, 3); ctx.lineTo(1, -2); ctx.lineTo(4, 3); ctx.lineTo(7, -2); ctx.lineTo(10, 3); ctx.lineTo(11, -2); ctx.fill();
-    } else if (kind === 'kurimanju') {
-      ctx.beginPath(); ctx.arc(0, -25, 10, Math.PI, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = '#edaaa188'; ctx.beginPath(); ctx.ellipse(-8.5, -15, 3.5, 2.3, 0, 0, Math.PI * 2); ctx.ellipse(8.5, -15, 3.5, 2.3, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#3b302c'; ctx.beginPath(); ctx.ellipse(-4.4, -21, 1.55, 2.5, 0, 0, Math.PI * 2); ctx.ellipse(4.4, -21, 1.55, 2.5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-4.7, -22, 0.65, 0, Math.PI * 2); ctx.arc(4.1, -22, 0.65, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#3b302c'; ctx.beginPath(); ctx.arc(0, -17, 1.15, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#4d3832'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(-2, -16); ctx.quadraticCurveTo(0, -13, 2, -16); ctx.stroke();
-    ctx.strokeStyle = '#805d50'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-10.5, -18); ctx.lineTo(-14, -19); ctx.moveTo(10.5, -18); ctx.lineTo(14, -19); ctx.stroke();
-    ctx.restore();
+  drawCrewMember(image, x, y, scale, tick) {
+    if (!image?.complete || !image.naturalWidth) return;
+    const ctx = this.context, height = 47 * scale, width = height * image.naturalWidth / image.naturalHeight;
+    const bob = Math.sin(tick * 0.19 + x) * 1.2 * scale;
+    ctx.fillStyle = '#4d423d44'; ctx.beginPath(); ctx.ellipse(x, y - 2, width * 0.33, 3.5 * scale, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.drawImage(image, x - width / 2, y - height + bob, width, height);
   }
 
   drawHeldWeapon(player, x, y, scale) {
