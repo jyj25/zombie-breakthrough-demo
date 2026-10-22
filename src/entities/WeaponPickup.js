@@ -10,7 +10,7 @@ const WEAPONS = [
 export class WeaponPickup extends WorldEntity {
   constructor(weapon = WEAPONS[Math.floor(Math.random() * WEAPONS.length)]) {
     const side = Math.random() < 0.5 ? 0 : 1;
-    const lane = side ? 0.68 + Math.random() * 0.28 : 0.04 + Math.random() * 0.28;
+    const lane = side ? 0.72 + Math.random() * 0.23 : 0.05 + Math.random() * 0.23;
     super({ lane, depth: 0.62, speed: 0.00125 });
     this.type = 'weapon';
     this.bonus = weapon.bonus;

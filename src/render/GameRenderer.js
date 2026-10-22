@@ -40,7 +40,7 @@ export class GameRenderer {
 
   roadHalf(y) {
     const t = Math.max(0, Math.min(1, (y - this.height * 0.07) / (this.height * 0.86)));
-    return this.width * (0.055 + 0.112 * t);
+    return this.width * (0.165 + 0.335 * t);
   }
 
   projectX(lane, depth) {
@@ -154,16 +154,26 @@ export class GameRenderer {
   }
 
   drawTrack(tick) {
-    const ctx = this.context, w = this.width, h = this.height, top = h * .30;
-    // A narrow, softly blended sand trail opens to roughly one third of the screen near the player.
-    ctx.fillStyle = '#f6e7c03c'; ctx.beginPath(); ctx.moveTo(w * .486, top);
-    ctx.bezierCurveTo(w * .432, h * .49, w * .326, h * .72, w * .334, h);
-    ctx.lineTo(w * .666, h); ctx.bezierCurveTo(w * .674, h * .72, w * .568, h * .49, w * .514, top);
+    const ctx = this.context, w = this.width, h = this.height, start = .58;
+    // Keep the runner path aligned with the wider projection and split it into three curved lanes.
+    ctx.fillStyle = '#f6e7c044'; ctx.beginPath();
+    for (let step = 0; step <= 24; step++) {
+      const depth = start + (1 - start) * step / 24, x = this.projectX(0, depth), y = this.projectY(depth);
+      if (step === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    for (let step = 24; step >= 0; step--) {
+      const depth = start + (1 - start) * step / 24, x = this.projectX(1, depth), y = this.projectY(depth);
+      ctx.lineTo(x, y);
+    }
     ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#9f855b35'; ctx.lineWidth = Math.max(1, w * .004); ctx.lineCap = 'round';
-    for (const [topX, middleX, bottomX] of [[.494, .472, .445], [.506, .528, .555]]) {
-      ctx.beginPath(); ctx.moveTo(w * topX, top);
-      ctx.bezierCurveTo(w * (topX - .004), h * .48, w * middleX, h * .72, w * bottomX, h * .98); ctx.stroke();
+    ctx.strokeStyle = '#9f855b42'; ctx.lineWidth = Math.max(1, w * .004); ctx.lineCap = 'round';
+    for (const lane of [1 / 3, 2 / 3]) {
+      ctx.beginPath();
+      for (let step = 0; step <= 24; step++) {
+        const depth = start + (1 - start) * step / 24, x = this.projectX(lane, depth), y = this.projectY(depth);
+        if (step === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
     }
   }
 
@@ -200,10 +210,11 @@ export class GameRenderer {
   drawGate(gate) {
     const ctx = this.context, y = this.projectY(gate.depth), x = this.projectX(gate.lane, gate.depth);
     const scale = 0.45 + gate.depth * 0.48, gw = 48 * scale, gh = 27 * scale;
-    ctx.fillStyle = '#fff9e9e8'; ctx.beginPath(); ctx.roundRect(x - gw / 2, y - gh, gw, gh, gh / 2); ctx.fill();
-    ctx.strokeStyle = gate.rewardType === 'multiplier' ? '#ae72d0aa' : gate.value < 0 ? '#e28770aa' : '#e2aa43aa'; ctx.lineWidth = 1.5; ctx.stroke();
+    const color = gate.rewardType === 'multiplier' ? '#9c61df99' : gate.value < 0 ? '#e84d56b3' : '#368be5a6';
+    ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x - gw / 2, y - gh, gw, gh, gh / 2); ctx.fill();
+    ctx.strokeStyle = gate.rewardType === 'multiplier' ? '#8441c9cc' : gate.value < 0 ? '#d53c46cc' : '#2774c8cc'; ctx.lineWidth = 1.5; ctx.stroke();
     const label = gate.rewardType === 'multiplier' ? `\u00d7${gate.value}` : `${gate.value < 0 ? '-' : '+'}${Math.abs(gate.value)}`;
-    ctx.fillStyle = '#513e31'; ctx.font = `900 ${Math.max(10, 12 * scale)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff'; ctx.font = `900 ${Math.max(10, 12 * scale)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(label, x, y - gh * 0.5); ctx.textBaseline = 'alphabetic';
   }
 
@@ -243,7 +254,7 @@ export class GameRenderer {
     ctx.fillStyle = '#09223fdc'; ctx.beginPath(); ctx.roundRect(w * 0.12, 20, w * 0.76, 18, 8); ctx.fill();
     ctx.fillStyle = '#ff6f8e'; ctx.beginPath(); ctx.roundRect(w * 0.12, 20, w * 0.76 * Math.max(0, boss.health / boss.maxHealth), 18, 8); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.font = `1000 ${Math.max(12, w * 0.038)}px system-ui`; ctx.textAlign = 'center';
-    ctx.fillText(`세이렌  ${Math.ceil(boss.health).toLocaleString()} / 99,999`, w / 2, 57);
+    ctx.fillText(`SIREN ${Math.ceil(boss.health).toLocaleString()} / ${boss.maxHealth.toLocaleString()}`, w / 2, 57);
     if (entrance < 1) {
       ctx.fillStyle = '#fff'; ctx.font = `1000 ${Math.max(22, w * 0.075)}px system-ui`; ctx.shadowColor = '#07294d'; ctx.shadowBlur = 9;
       ctx.fillText('세이렌 등장!', w / 2, h * 0.21); ctx.shadowBlur = 0;

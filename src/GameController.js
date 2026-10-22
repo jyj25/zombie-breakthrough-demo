@@ -90,11 +90,11 @@ export class GameController {
       const sideLane = Math.random() < 0.5 ? 0.1 + Math.random() * 0.12 : 0.78 + Math.random() * 0.12;
       const roll = Math.random();
       if (roll < GAME_CONFIG.multiplierGateChance) {
-        this.entities.push(new PowerGate('multiplier', Math.random() < 0.55 ? 2 : 3, sideLane));
+        this.entities.push(new PowerGate('multiplier', 2 + Math.floor(Math.random() * 4), sideLane));
       } else if (roll < GAME_CONFIG.multiplierGateChance + 0.3) {
-        this.entities.push(new PowerGate('power', -this.randomValue([2, 5, 10, 25]), sideLane));
+        this.entities.push(new PowerGate('power', -(GAME_CONFIG.gateMin + Math.floor(Math.random() * GAME_CONFIG.gateMax)), sideLane));
       } else {
-        this.entities.push(new PowerGate('power', this.randomValue(GAME_CONFIG.gateValues), sideLane));
+        this.entities.push(new PowerGate('power', GAME_CONFIG.gateMin + Math.floor(Math.random() * GAME_CONFIG.gateMax), sideLane));
       }
       return;
     }
@@ -116,7 +116,7 @@ export class GameController {
   }
 
   fire() {
-    // x2 and x3 are bursts of up to three bullets; each bullet is capped at 9,999 damage.
+    // The multiplier is a burst of up to five bullets; each bullet is capped at 9,999 damage.
     for (let index = 0; index < this.player.shotMultiplier; index++) {
       const laneOffset = this.player.shotMultiplier === 1 ? 0 : (index - (this.player.shotMultiplier - 1) / 2) * 0.045;
       this.projectiles.push(new Projectile(this.player.lane + laneOffset, this.player.depth - 0.045, this.player.power));
