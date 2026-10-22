@@ -8,9 +8,9 @@ export class GameRenderer {
     this.pixelRatio = 1;
     this.images = {};
     const files = {
-      flight: 'flight-cutout.png', siren: 'siren.png', win: 'siren-win.png', ocean: 'ocean.png',
+      flight: 'flight-cutout.png', siren: 'siren-cutout.png', win: 'siren-win.png', ocean: 'ocean.png',
       bowl: 'weapon-bowl-cutout.png', forkPink: 'weapon-fork-pink.svg', forkBlue: 'weapon-fork-blue.svg',
-      stick: 'weapon-stick.svg', sword: 'weapon-sword.svg', enemyGreen: 'enemy-green.png', enemyPink: 'enemy-pink.png',
+      stick: 'weapon-stick-cutout.png', sword: 'weapon-sword.svg', enemyGreen: 'enemy-green.png', enemyPink: 'enemy-pink.png',
     };
     for (const [key, file] of Object.entries(files)) {
       const image = new Image();
@@ -179,7 +179,7 @@ export class GameRenderer {
 
   drawSirenSea(tick, bossAge = 0) {
     const ctx = this.context, w = this.width, h = this.height;
-    if (bossAge < 75) {
+    if (bossAge < 180) {
       const image = this.images.ocean;
       ctx.fillStyle = '#102b52'; ctx.fillRect(0, 0, w, h);
       if (image?.complete && image.naturalWidth) {
@@ -189,7 +189,7 @@ export class GameRenderer {
       }
       ctx.fillStyle = '#09213d42'; ctx.fillRect(0, 0, w, h);
     } else this.drawNaturalCoast(tick, true);
-    if (bossAge < 75) this.drawTrack(tick);
+    if (bossAge < 180) this.drawTrack(tick);
   }
 
   drawFlightIntro(introTick) {
@@ -244,12 +244,13 @@ export class GameRenderer {
 
   drawBoss(boss) {
     const ctx = this.context, h = this.height, w = this.width, image = this.images.siren;
-    const entrance = Math.min(1, boss.age / 75), targetY = this.projectY(boss.depth);
+    const entrance = Math.min(1, boss.age / 180), targetY = this.projectY(boss.depth);
     const y = h * (1.05 - entrance * 0.67) + (targetY - h * 0.38) * entrance;
     const size = Math.min(w * 0.68, h * 0.42) * (0.62 + entrance * 0.38), x = w / 2;
-    ctx.save(); ctx.shadowColor = '#0a193e99'; ctx.shadowBlur = 20; ctx.fillStyle = '#fffdf4';
-    ctx.beginPath(); ctx.roundRect(x - size * 0.44, y - size * 0.44, size * 0.88, size * 0.88, 25); ctx.fill(); ctx.restore();
-    if (image?.complete && image.naturalWidth) ctx.drawImage(image, x - size * 0.42, y - size * 0.42, size * 0.84, size * 0.84);
+    if (image?.complete && image.naturalWidth) {
+      ctx.save(); ctx.shadowColor = '#0a193e77'; ctx.shadowBlur = 12;
+      ctx.drawImage(image, x - size * 0.42, y - size * 0.42, size * 0.84, size * 0.84); ctx.restore();
+    }
     else this.drawHamster(x, y, size * 0.35, 'siren', 0);
     ctx.fillStyle = '#09223fdc'; ctx.beginPath(); ctx.roundRect(w * 0.12, 20, w * 0.76, 18, 8); ctx.fill();
     ctx.fillStyle = '#ff6f8e'; ctx.beginPath(); ctx.roundRect(w * 0.12, 20, w * 0.76 * Math.max(0, boss.health / boss.maxHealth), 18, 8); ctx.fill();

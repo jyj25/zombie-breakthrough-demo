@@ -10,7 +10,7 @@
   shotInterval: 12,
   shotSpeed: 0.035,
   sirenHealth: 999999,
-  sirenSpawnEffectivePower: 9999,
+  sirenSpawnEffectivePower: 12000,
 });
 
 export const GAME_STATE = Object.freeze({ READY: 'ready', INTRO: 'intro', PLAYING: 'playing', GAME_OVER: 'gameover', WON: 'won' });
