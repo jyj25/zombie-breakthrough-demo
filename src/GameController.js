@@ -8,7 +8,7 @@ import { ZombieHorde } from './entities/ZombieHorde.js';
 import { PointerController } from './input/PointerController.js';
 import { GameRenderer } from './render/GameRenderer.js';
 
-/** Owns the game loop, rules, collision checks, and entity lifecycle. */
+/** Coordinates game state and delegates drawing, input, and entity behavior. */
 export class GameController {
   constructor(canvas, ui) {
     this.ui = ui;
@@ -16,12 +16,12 @@ export class GameController {
     this.player = new Player();
     this.state = GAME_STATE.READY;
     this.tick = 0;
+    this.introTick = 0;
     this.spawnTimer = 0;
     this.shotTimer = 0;
     this.wave = 1;
     this.kills = 0;
-    this.bossIndex = 0;
-    this.finalBossSpawned = false;
+    this.sirenSpawned = false;
     this.boss = null;
     this.entities = [];
     this.projectiles = [];
@@ -37,9 +37,9 @@ export class GameController {
   start() {
     if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
     this.player.reset();
-    this.state = GAME_STATE.PLAYING;
-    this.tick = this.spawnTimer = this.shotTimer = this.wave = this.kills = this.bossIndex = 0;
-    this.finalBossSpawned = false;
+    this.state = GAME_STATE.INTRO;
+    this.tick = this.spawnTimer = this.shotTimer = this.wave = this.kills = this.introTick = 0;
+    this.sirenSpawned = false;
     this.wave = 1;
     this.boss = null;
     this.entities = [];
@@ -50,17 +50,22 @@ export class GameController {
   }
 
   loop() {
-    if (this.state !== GAME_STATE.PLAYING) return;
+    if (![GAME_STATE.INTRO, GAME_STATE.PLAYING].includes(this.state)) return;
     this.update();
     this.render();
     this.publishState();
-    this.animationFrame = requestAnimationFrame(() => this.loop());
+    if ([GAME_STATE.INTRO, GAME_STATE.PLAYING].includes(this.state)) this.animationFrame = requestAnimationFrame(() => this.loop());
   }
 
   update() {
+    if (this.state === GAME_STATE.INTRO) {
+      this.introTick++;
+      if (this.introTick >= 150) this.state = GAME_STATE.PLAYING;
+      return;
+    }
     this.tick++;
     this.player.update();
-    if (++this.spawnTimer >= GAME_CONFIG.spawnInterval) { this.spawnEntity(); this.spawnTimer = 0; }
+    if (!this.boss && ++this.spawnTimer >= GAME_CONFIG.spawnInterval) { this.spawnEntity(); this.spawnTimer = 0; }
     if (++this.shotTimer >= GAME_CONFIG.shotInterval) { this.fire(); this.shotTimer = 0; }
 
     for (const entity of this.entities) if (entity.active) entity.update();
@@ -76,18 +81,12 @@ export class GameController {
   }
 
   spawnEntity() {
-    if (this.spawnFinalBossIfReady()) return;
-    const finalBossIndex = GAME_CONFIG.bossHealth.length - 1;
-    if (!this.boss && this.player.power >= 100 && this.bossIndex < finalBossIndex && this.kills >= GAME_CONFIG.bossKillThresholds[this.bossIndex]) {
-      this.startBoss(this.bossIndex);
+    if (this.trySpawnSiren()) return;
+    if (Math.random() < 0.18) {
+      this.entities.push(new WeaponPickup());
       return;
     }
-    if (this.bossIndex >= 2 && Math.random() < 0.22) {
-      const bonus = this.bossIndex >= 4 ? 800 : this.bossIndex >= 3 ? 400 : 200;
-      this.entities.push(new WeaponPickup(bonus));
-      return;
-    }
-    if (Math.random() < 0.45) {
+    if (Math.random() < 0.42) {
       if (Math.random() < GAME_CONFIG.multiplierGateChance) {
         this.entities.push(new PowerGate('multiplier', Math.random() < 0.55 ? 2 : 3));
       } else {
@@ -102,31 +101,21 @@ export class GameController {
 
   randomValue(values) { return values[Math.floor(Math.random() * values.length)]; }
 
-  startBoss(index) {
-    if (index === GAME_CONFIG.bossHealth.length - 1) this.finalBossSpawned = true;
-    this.bossIndex = index + 1;
-    this.boss = new Boss(GAME_CONFIG.bossNames[index], this.rollBossHealth(GAME_CONFIG.bossHealth[index]), index === GAME_CONFIG.bossHealth.length - 1);
-    this.wave = this.bossIndex + 1;
-    this.addPopup(this.renderer.width / 2, this.renderer.height * 0.28, `⚠ ${this.boss.name}`, '#ffe16a');
-  }
-
-  spawnFinalBossIfReady() {
-    const finalBossIndex = GAME_CONFIG.bossHealth.length - 1;
-    if (this.boss || this.finalBossSpawned || this.player.power < GAME_CONFIG.maxPower) return false;
-    this.startBoss(finalBossIndex);
+  trySpawnSiren() {
+    if (this.boss || this.sirenSpawned || this.player.power < GAME_CONFIG.sirenSpawnPower) return false;
+    this.sirenSpawned = true;
+    this.boss = new Boss(GAME_CONFIG.sirenHealth);
+    this.entities = [];
+    this.projectiles = [];
+    this.wave = 6;
+    this.addPopup(this.renderer.width / 2, this.renderer.height * 0.28, '세이렌 등장!', '#ffeaa6');
     return true;
   }
 
-  rollBossHealth(setting) {
-    if (typeof setting === 'number') return setting;
-    return setting.min + Math.floor(Math.random() * (setting.max - setting.min + 1));
-  }
-
   fire() {
-    // Each member of a burst deals the player's attack power; x2/x3 gates raise shots per burst.
-    const count = this.player.shotMultiplier;
-    for (let index = 0; index < count; index++) {
-      const laneOffset = count === 1 ? 0 : (index - (count - 1) / 2) * 0.045;
+    // x2 and x3 are bursts of up to three bullets; each bullet is capped at 9,999 damage.
+    for (let index = 0; index < this.player.shotMultiplier; index++) {
+      const laneOffset = this.player.shotMultiplier === 1 ? 0 : (index - (this.player.shotMultiplier - 1) / 2) * 0.045;
       this.projectiles.push(new Projectile(this.player.lane + laneOffset, this.player.depth - 0.045, this.player.power));
     }
   }
@@ -134,9 +123,9 @@ export class GameController {
   resolveProjectileHits() {
     for (const projectile of this.projectiles) {
       if (!projectile.active) continue;
-      if (this.boss && this.isProjectileNear(projectile, this.boss, 0.08, this.renderer.width * 0.22)) {
+      if (this.boss && this.isProjectileNear(projectile, this.boss, 0.12, this.renderer.width * 0.28)) {
         projectile.active = false;
-        if (this.boss.takeDamage(projectile.damage)) this.defeatBoss();
+        if (this.boss.takeDamage(projectile.damage)) this.defeatSiren();
         continue;
       }
       for (const horde of this.entities) {
@@ -144,7 +133,8 @@ export class GameController {
         if (this.isProjectileNear(projectile, horde, 0.035, this.renderer.width * (0.035 + horde.depth * 0.04))) {
           const defeated = horde.takeDamage(projectile.damage);
           this.kills += defeated;
-          if (!horde.active) this.addPopup(this.renderer.projectX(horde.lane, horde.depth), this.renderer.projectY(horde.depth), '처치!', '#dcffb2');
+          this.wave = Math.min(6, 1 + Math.floor(this.kills / 30));
+          if (!horde.active) this.addPopup(this.renderer.projectX(horde.lane, horde.depth), this.renderer.projectY(horde.depth), '물리쳤다!', '#fff2cf');
           projectile.active = false;
           break;
         }
@@ -160,23 +150,25 @@ export class GameController {
 
   resolveEncounters() {
     for (const entity of this.entities) {
+      if (this.boss) break;
       if (!entity.active) continue;
       if (entity.type === 'gate' && entity.depth >= this.player.depth - 0.025) {
         entity.active = false;
         if (entity.rewardType === 'multiplier') {
           const multiplier = this.player.setShotMultiplier(entity.value);
-          this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `×${multiplier} 발사`, '#d8b5ff');
+          this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `×${multiplier} 발사`, '#e3c8ff');
         } else {
           const increase = this.player.addPower(entity.value);
-          this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `+${increase}`, '#9cffbb');
-          this.spawnFinalBossIfReady();
+          this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `공격력 +${increase}`, '#fff0a8');
+          this.trySpawnSiren();
         }
       } else if (entity.type === 'weapon' && entity.depth >= this.player.depth - 0.025) {
         entity.active = false;
-        if (Math.abs(this.player.lane - entity.lane) < 0.22) {
+        if (Math.abs(this.player.lane - entity.lane) < 0.2) {
           const increase = this.player.addPower(entity.bonus);
-          this.addPopup(this.renderer.projectX(entity.lane, entity.depth), this.renderer.projectY(this.player.depth) - 48, `무기 +${increase}`, '#9de1ff');
-          this.spawnFinalBossIfReady();
+          this.player.equipWeapon(entity.bonus, entity.weaponKey, entity.weaponVariant);
+          this.addPopup(this.renderer.projectX(entity.lane, entity.depth), this.renderer.projectY(this.player.depth) - 48, `무기 +${increase}`, '#c5f2ff');
+          this.trySpawnSiren();
         }
       } else if (entity.type === 'horde' && entity.depth >= this.player.depth - 0.015) {
         if (this.overlapsPlayer(entity)) { this.finish(GAME_STATE.GAME_OVER); return; }
@@ -186,8 +178,7 @@ export class GameController {
     if (this.boss) {
       this.boss.update();
       if (this.boss.depth >= this.player.depth - 0.015) {
-        if (this.overlapsPlayer(this.boss)) this.finish(GAME_STATE.GAME_OVER);
-        else this.boss = null;
+        this.finish(GAME_STATE.GAME_OVER);
       }
     }
   }
@@ -197,16 +188,13 @@ export class GameController {
     const xGap = Math.abs(this.renderer.projectX(entity.lane, entity.depth) - this.renderer.projectX(this.player.lane, this.player.depth));
     const isBoss = entity.type === 'boss';
     const scale = Math.max(0.8, this.renderer.width / 390);
-    return yGap < (isBoss ? 36 : 22) * scale && xGap < (isBoss ? this.renderer.width * 0.2 : 24 * scale);
+    return yGap < (isBoss ? 45 : 22) * scale && xGap < (isBoss ? this.renderer.width * 0.22 : 24 * scale);
   }
 
-  defeatBoss() {
-    const defeated = this.boss;
+  defeatSiren() {
     this.boss = null;
-    this.kills += 4;
-    this.addPopup(this.renderer.width / 2, this.renderer.height * 0.35, `${defeated.name} 격파!`, '#ffe16a');
-    if (defeated.finalBoss) this.finish(GAME_STATE.WON);
-    else this.spawnFinalBossIfReady();
+    this.kills += 1;
+    this.finish(GAME_STATE.WON);
   }
 
   addPopup(x, y, text, color) { this.popups.push({ x, y, text, color, life: 70 }); }

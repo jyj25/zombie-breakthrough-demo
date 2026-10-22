@@ -1,14 +1,15 @@
-export const GAME_CONFIG = Object.freeze({
+﻿export const GAME_CONFIG = Object.freeze({
   maxPower: 9999,
+  maxShotMultiplier: 3,
   playerDepth: 0.88,
   gateValues: [2, 3, 5, 10, 25, 50, 99],
-  bossHealth: [300, { min: 600, max: 700 }, { min: 900, max: 1200 }, 2000, { min: 3000, max: 4000 }, 99999],
-  bossNames: ['폐허의 덩치', '갑옷 좀비', '변이 좀비', '좀비 기사', '거대 좀비', '최종 보스'],
-  bossKillThresholds: [8, 20, 35, 52, 70],
+  crewThresholds: [10, 100, 1000, 2000, 4000],
   multiplierGateChance: 0.22,
-  spawnInterval: 104,
+  spawnInterval: 86,
   shotInterval: 12,
   shotSpeed: 0.035,
+  sirenHealth: 99999,
+  sirenSpawnPower: 9999,
 });
 
-export const GAME_STATE = Object.freeze({ READY: 'ready', PLAYING: 'playing', GAME_OVER: 'gameover', WON: 'won' });
+export const GAME_STATE = Object.freeze({ READY: 'ready', INTRO: 'intro', PLAYING: 'playing', GAME_OVER: 'gameover', WON: 'won' });

@@ -1,33 +1,34 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#101722">
-  <meta name="description" content="손가락으로 이동하는 좀비 러너 게임 데모">
-  <title>좀비 돌파 - 러너 데모</title>
+  <meta name="theme-color" content="#76b8c1">
+  <meta name="description" content="치이카와 토벌대와 함께 세이렌을 물리치는 해변 러너 게임">
+  <title>세이렌 토벌</title>
   <link rel="stylesheet" href="./styles/main.css">
   <script type="module" src="./src/main.js"></script>
 </head>
 <body>
   <main class="game-shell">
     <header class="game-header">
-      <div class="brand">좀비 돌파 <span>RUNNER DEMO</span></div>
+      <div class="brand">세이렌 토벌 <span>CHIikawa BEACH RUN</span></div>
       <div class="stats" aria-live="polite">
         <div>공격력<b id="power">1</b></div>
-        <div>구간<b id="wave">1 / 6</b></div>
+        <div>토벌<b id="wave">1 / 6</b></div>
         <div>처치<b id="kills">0</b></div>
       </div>
     </header>
     <section class="game-stage" aria-label="게임 화면">
-      <canvas id="game-canvas" aria-label="좀비 돌파 게임 플레이 영역"></canvas>
-      <div class="control-hint">마우스 또는 손가락으로 좌우 이동 · 캐릭터는 자동 전진</div>
+      <canvas id="game-canvas" aria-label="세이렌 토벌 게임 플레이 영역"></canvas>
+      <div class="control-hint">화면을 드래그해 치이카와 토벌대를 좌우로 움직이세요</div>
     </section>
     <section class="game-overlay" id="game-overlay" aria-modal="true" role="dialog">
       <div class="dialog">
-        <h1 id="dialog-title">좀비 돌파</h1>
-        <p id="dialog-message">통로를 달리며 좀비 무리를 물리치고<br>숫자 게이트를 골라 공격력을 키우세요.<br><strong>최종 보스 체력 99,999 · 공격력 최대 9,999</strong></p>
-        <button id="start-button" type="button">게임 시작</button>
+        <img id="dialog-image" class="dialog-image" src="./assets/game/flight.png" alt="토벌 장소로 날아가는 치이카와 토벌대">
+        <h1 id="dialog-title">세이렌 토벌</h1>
+        <p id="dialog-message">해변을 달리며 공격력을 모으세요.<br><strong>세이렌 체력 99,999 · 최대 발사 ×3</strong></p>
+        <button id="start-button" type="button">토벌 시작</button>
       </div>
     </section>
   </main>
