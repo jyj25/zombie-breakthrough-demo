@@ -2,10 +2,10 @@
 
 The provided reference images selected for in-game use are stored here:
 
-- `flight.png`: source for the opening flight sequence; `flight-cutout.png` is the transparent in-game version
+- `flight.png`: source for the opening flight sequence; `flight-cutout.png` removes only the outer white backdrop and preserves the characters' white fills
 - `ocean.png`: the sea backdrop as the Siren rises
 - `siren-cutout.png`: transparent Siren encounter image; `siren.png` remains the failure screen source
-- `siren-win.png`: victory screen
+- `siren-win.png`: victory image source; `siren-win-cutout.png` removes its outer white backdrop for the victory screen
 - `weapon-bowl.png`: source for the bowl pickup; `weapon-bowl-cutout.png` removes its white backdrop
 - `weapon-fork-pink.svg`, `weapon-fork-blue.svg`: transparent pink and blue fork illustrations based on the supplied references
 - `weapon-stick-cutout.png`: background-removed cutout based on the supplied yellow stick reference

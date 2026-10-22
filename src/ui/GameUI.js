@@ -38,7 +38,7 @@ export class GameUI {
     } else if (state === GAME_STATE.WON) {
       this.title.textContent = '토벌 성공!';
       this.message.innerHTML = `체력 999,999의 세이렌을 물리쳤어요!<br>최종 공격력 <b>${stats.power.toLocaleString()} ×${stats.multiplier}</b>`;
-      this.image.src = './assets/game/siren-win.png';
+      this.image.src = './assets/game/siren-win-cutout.png';
       this.image.alt = '세이렌 토벌 성공 기념 이미지';
       this.image.hidden = false;
       this.startButton.textContent = '다시 토벌하기';
