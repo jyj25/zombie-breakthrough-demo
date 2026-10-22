@@ -78,7 +78,7 @@ export class GameController {
   spawnEntity() {
     if (this.spawnFinalBossIfReady()) return;
     const finalBossIndex = GAME_CONFIG.bossHealth.length - 1;
-    if (!this.boss && this.bossIndex < finalBossIndex && this.kills >= GAME_CONFIG.bossKillThresholds[this.bossIndex]) {
+    if (!this.boss && this.player.power >= 100 && this.bossIndex < finalBossIndex && this.kills >= GAME_CONFIG.bossKillThresholds[this.bossIndex]) {
       this.startBoss(this.bossIndex);
       return;
     }
@@ -95,9 +95,9 @@ export class GameController {
       }
       return;
     }
-    const count = 3 + Math.floor(Math.random() * 10);
+    const count = 20 + Math.floor(Math.random() * 12);
     const lane = [0.22, 0.5, 0.78][Math.floor(Math.random() * 3)];
-    this.entities.push(new ZombieHorde(lane, count, 0.0016 + this.wave * 0.00008));
+    this.entities.push(new ZombieHorde(lane, count, 0.00135 + this.wave * 0.00004));
   }
 
   randomValue(values) { return values[Math.floor(Math.random() * values.length)]; }

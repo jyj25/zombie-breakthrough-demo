@@ -7,7 +7,7 @@ export const GAME_CONFIG = Object.freeze({
   bossKillThresholds: [8, 20, 35, 52, 70],
   multiplierGateChance: 0.22,
   spawnInterval: 104,
-  shotInterval: 18,
+  shotInterval: 12,
   shotSpeed: 0.035,
 });
 
