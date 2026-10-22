@@ -10,7 +10,7 @@ export class GameRenderer {
     const files = {
       flight: 'flight-cutout.png', siren: 'siren.png', win: 'siren-win.png', ocean: 'ocean.png',
       bowl: 'weapon-bowl-cutout.png', forkPink: 'weapon-fork-pink.svg', forkBlue: 'weapon-fork-blue.svg',
-      stick: 'weapon-stick.svg', sword: 'weapon-sword.svg',
+      stick: 'weapon-stick.svg', sword: 'weapon-sword.svg', enemyGreen: 'enemy-green.png', enemyPink: 'enemy-pink.png',
     };
     for (const [key, file] of Object.entries(files)) {
       const image = new Image();
@@ -40,7 +40,7 @@ export class GameRenderer {
 
   roadHalf(y) {
     const t = Math.max(0, Math.min(1, (y - this.height * 0.07) / (this.height * 0.86)));
-    return this.width * (0.13 + 0.38 * t);
+    return this.width * (0.055 + 0.112 * t);
   }
 
   projectX(lane, depth) {
@@ -72,6 +72,7 @@ export class GameRenderer {
 
   drawBeach(tick) {
     this.drawNaturalCoast(tick, false);
+    this.drawTrack(tick);
   }
 
   // Soft scenic layers and seeded organic details keep the play area legible without a hard-edged road.
@@ -153,7 +154,17 @@ export class GameRenderer {
   }
 
   drawTrack(tick) {
-    // The lane geometry remains for movement and collision projection; the beach itself stays open and organic.
+    const ctx = this.context, w = this.width, h = this.height, top = h * .30;
+    // A narrow, softly blended sand trail opens to roughly one third of the screen near the player.
+    ctx.fillStyle = '#f6e7c03c'; ctx.beginPath(); ctx.moveTo(w * .486, top);
+    ctx.bezierCurveTo(w * .432, h * .49, w * .326, h * .72, w * .334, h);
+    ctx.lineTo(w * .666, h); ctx.bezierCurveTo(w * .674, h * .72, w * .568, h * .49, w * .514, top);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#9f855b35'; ctx.lineWidth = Math.max(1, w * .004); ctx.lineCap = 'round';
+    for (const [topX, middleX, bottomX] of [[.494, .472, .445], [.506, .528, .555]]) {
+      ctx.beginPath(); ctx.moveTo(w * topX, top);
+      ctx.bezierCurveTo(w * (topX - .004), h * .48, w * middleX, h * .72, w * bottomX, h * .98); ctx.stroke();
+    }
   }
 
   drawSirenSea(tick, bossAge = 0) {
@@ -187,13 +198,13 @@ export class GameRenderer {
   }
 
   drawGate(gate) {
-    const ctx = this.context, y = this.projectY(gate.depth), half = this.roadHalf(y) * 0.83;
-    const scale = 0.38 + gate.depth * 0.65, gh = Math.max(25, scale * 46), center = this.width / 2;
-    ctx.fillStyle = '#fff8e8dd'; ctx.beginPath(); ctx.roundRect(center - half * 0.72, y - gh, half * 1.44, gh, 12 * scale); ctx.fill();
-    ctx.strokeStyle = gate.rewardType === 'multiplier' ? '#ae72d0' : '#e2aa43'; ctx.lineWidth = 3 * scale; ctx.stroke();
-    const label = gate.rewardType === 'multiplier' ? `×${gate.value}` : `+${gate.value}`;
-    ctx.fillStyle = '#513e31'; ctx.font = `1000 ${Math.max(16, scale * 29)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(label, center, y - gh * 0.48); ctx.textBaseline = 'alphabetic';
+    const ctx = this.context, y = this.projectY(gate.depth), x = this.projectX(gate.lane, gate.depth);
+    const scale = 0.45 + gate.depth * 0.48, gw = 48 * scale, gh = 27 * scale;
+    ctx.fillStyle = '#fff9e9e8'; ctx.beginPath(); ctx.roundRect(x - gw / 2, y - gh, gw, gh, gh / 2); ctx.fill();
+    ctx.strokeStyle = gate.rewardType === 'multiplier' ? '#ae72d0aa' : gate.value < 0 ? '#e28770aa' : '#e2aa43aa'; ctx.lineWidth = 1.5; ctx.stroke();
+    const label = gate.rewardType === 'multiplier' ? `\u00d7${gate.value}` : `${gate.value < 0 ? '-' : '+'}${Math.abs(gate.value)}`;
+    ctx.fillStyle = '#513e31'; ctx.font = `900 ${Math.max(10, 12 * scale)}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y - gh * 0.5); ctx.textBaseline = 'alphabetic';
   }
 
   drawWeapon(pickup) {
@@ -207,23 +218,17 @@ export class GameRenderer {
     ctx.fillText('+' + pickup.bonus, x, y - size * 0.74);
   }
 
-  drawZombie(x, y, size) {
-    const ctx = this.context;
-    ctx.fillStyle = '#77886c'; ctx.beginPath(); ctx.ellipse(x, y + size * 0.34, size * 0.38, size * 0.45, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff5d4'; ctx.beginPath(); ctx.arc(x - size * 0.12, y - size * 0.1, size * 0.055, 0, Math.PI * 2); ctx.arc(x + size * 0.12, y - size * 0.1, size * 0.055, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#576c56'; ctx.lineWidth = Math.max(1, size * 0.08); ctx.beginPath(); ctx.moveTo(x - size * 0.24, y + size * 0.4); ctx.lineTo(x - size * 0.36, y + size * 0.6); ctx.moveTo(x + size * 0.24, y + size * 0.4); ctx.lineTo(x + size * 0.36, y + size * 0.6); ctx.stroke();
-  }
-
   drawHorde(horde) {
     if (horde.count <= 0) return;
-    const y = this.projectY(horde.depth), scale = 0.34 + horde.depth * 0.85, size = 5 + scale * 12;
     for (let i = 0; i < horde.count; i++) {
-      const row = Math.floor(i / 6), col = i % 6;
-      this.drawZombie(this.projectX(horde.lane + (col - 2.5) * 0.055, horde.depth - row * 0.012), y - row * size * 0.62, size * 0.72);
+      const row = Math.floor(i / 3), col = i % 3, depth = Math.max(0.08, horde.depth - row * 0.032);
+      const x = this.projectX(0.5 + (col - 1) * 0.14, depth), y = this.projectY(depth);
+      const size = (23 + depth * 28) * Math.min(1.15, this.width / 390);
+      const image = this.images[horde.variants[i] === 'green' ? 'enemyGreen' : 'enemyPink'];
+      const ctx = this.context;
+      ctx.fillStyle = '#55453530'; ctx.beginPath(); ctx.ellipse(x, y - 1, size * .36, size * .09, 0, 0, Math.PI * 2); ctx.fill();
+      if (image?.complete && image.naturalWidth) ctx.drawImage(image, x - size * .46, y - size * .98, size * .92, size * .96);
     }
-    const x = this.projectX(horde.lane, horde.depth), ctx = this.context;
-    ctx.fillStyle = '#ffffffdb'; ctx.beginPath(); ctx.roundRect(x - 17 * scale, y - size * 1.3, 34 * scale, 16 * scale, 6); ctx.fill();
-    ctx.fillStyle = '#553f33'; ctx.font = `900 ${Math.max(11, 13 * scale)}px system-ui`; ctx.textAlign = 'center'; ctx.fillText(String(horde.count), x, y - size * 0.67);
   }
 
   drawBoss(boss) {
@@ -247,9 +252,9 @@ export class GameRenderer {
 
   drawPlayer(player, tick) {
     const y = this.projectY(player.depth), x = this.projectX(player.lane, player.depth), scale = Math.max(0.7, Math.min(1.18, this.width / 390));
-    const roster = ['chiikawa', 'hachiwore', 'usagi', 'rakkko', 'kurimanju'];
+    const roster = ['hachiwore', 'usagi', 'rakkko', 'kurimanju'];
     player.crewOffsets.forEach((offset, index) => this.drawHamster(this.projectX(player.lane + offset, player.depth), y + 4 * scale, scale * 0.78, roster[index], tick));
-    this.drawHamster(x, y, scale, 'white', tick);
+    this.drawHamster(x, y, scale, 'chiikawa', tick);
     const ctx = this.context; ctx.fillStyle = '#fff9e7ee'; ctx.beginPath(); ctx.roundRect(x - 39 * scale, y - 74 * scale, 78 * scale, 23 * scale, 9); ctx.fill();
     const label = player.shotMultiplier > 1 ? `${player.power.toLocaleString()} ×${player.shotMultiplier}` : player.power.toLocaleString();
     ctx.fillStyle = '#44372e'; ctx.font = `1000 ${14 * scale}px system-ui`; ctx.textAlign = 'center'; ctx.fillText(label, x, y - 58 * scale);

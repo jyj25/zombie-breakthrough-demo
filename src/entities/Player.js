@@ -22,7 +22,7 @@ export class Player {
 
   addPower(amount) {
     const previous = this.power;
-    this.power = Math.min(GAME_CONFIG.maxPower, this.power + amount);
+    this.power = Math.max(1, Math.min(GAME_CONFIG.maxPower, this.power + amount));
     this.updateCrew();
     return this.power - previous;
   }
@@ -39,9 +39,9 @@ export class Player {
   }
 
   updateCrew() {
-    // The white hamster is always present. Friends join in the order shown in the reference.
+    // Chiikawa starts as member 1; four friends can join for a five-character maximum.
     const count = GAME_CONFIG.crewThresholds.filter(threshold => this.power >= threshold).length;
-    const formation = [-0.13, 0.13, -0.26, 0.26, -0.39];
+    const formation = [-0.18, 0.18, -0.36, 0.36];
     this.crewOffsets = formation.slice(0, count);
   }
 }

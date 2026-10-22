@@ -8,6 +8,7 @@ The provided reference images selected for in-game use are stored here:
 - `siren-win.png`: victory screen
 - `weapon-bowl.png`: source for the bowl pickup; `weapon-bowl-cutout.png` removes its white backdrop
 - `weapon-fork-pink.svg`, `weapon-fork-blue.svg`, `weapon-stick.svg`, `weapon-sword.svg`: transparent, mobile-friendly weapon illustrations
+- `enemy-green.png`, `enemy-pink.png`: background-removed enemies that appear in the center lane
 - `weapon-pink-blue.png`, `weapon-stick.png`, `weapon-swords.png`: supplied visual references for those weapon illustrations
 
 The hamster crew is drawn in Canvas using the supplied character lineup as a style and order reference. This keeps each character clear at small mobile sizes.

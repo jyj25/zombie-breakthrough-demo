@@ -82,21 +82,24 @@ export class GameController {
 
   spawnEntity() {
     if (this.trySpawnSiren()) return;
-    if (Math.random() < 0.18) {
+    if (Math.random() < 0.19) {
       this.entities.push(new WeaponPickup());
       return;
     }
-    if (Math.random() < 0.42) {
-      if (Math.random() < GAME_CONFIG.multiplierGateChance) {
-        this.entities.push(new PowerGate('multiplier', Math.random() < 0.55 ? 2 : 3));
+    if (Math.random() < 0.34) {
+      const sideLane = Math.random() < 0.5 ? 0.1 + Math.random() * 0.12 : 0.78 + Math.random() * 0.12;
+      const roll = Math.random();
+      if (roll < GAME_CONFIG.multiplierGateChance) {
+        this.entities.push(new PowerGate('multiplier', Math.random() < 0.55 ? 2 : 3, sideLane));
+      } else if (roll < GAME_CONFIG.multiplierGateChance + 0.3) {
+        this.entities.push(new PowerGate('power', -this.randomValue([2, 5, 10, 25]), sideLane));
       } else {
-        this.entities.push(new PowerGate('power', this.randomValue(GAME_CONFIG.gateValues)));
+        this.entities.push(new PowerGate('power', this.randomValue(GAME_CONFIG.gateValues), sideLane));
       }
       return;
     }
-    const count = 20 + Math.floor(Math.random() * 12);
-    const lane = [0.22, 0.5, 0.78][Math.floor(Math.random() * 3)];
-    this.entities.push(new ZombieHorde(lane, count, 0.00135 + this.wave * 0.00004));
+    const count = 4 + Math.floor(Math.random() * 3);
+    this.entities.push(new ZombieHorde(0.5, count, 0.00155 + this.wave * 0.00004));
   }
 
   randomValue(values) { return values[Math.floor(Math.random() * values.length)]; }
@@ -153,6 +156,7 @@ export class GameController {
       if (this.boss) break;
       if (!entity.active) continue;
       if (entity.type === 'gate' && entity.depth >= this.player.depth - 0.025) {
+        if (Math.abs(this.player.lane - entity.lane) >= 0.2) continue;
         entity.active = false;
         if (entity.rewardType === 'multiplier') {
           const multiplier = this.player.setShotMultiplier(entity.value);
@@ -160,7 +164,7 @@ export class GameController {
           this.trySpawnSiren();
         } else {
           const increase = this.player.addPower(entity.value);
-          this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `공격력 +${increase}`, '#fff0a8');
+          this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `공격력 ${increase > 0 ? '+' : ''}${increase}`, increase < 0 ? '#ffd4bc' : '#fff0a8');
           this.trySpawnSiren();
         }
       } else if (entity.type === 'weapon' && entity.depth >= this.player.depth - 0.025) {

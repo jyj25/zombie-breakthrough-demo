@@ -2,10 +2,11 @@ import { WorldEntity } from './WorldEntity.js';
 
 export class ZombieHorde extends WorldEntity {
   constructor(lane, count, speed) {
-    super({ lane, depth: 0.16, speed });
+    super({ lane, depth: 0.62, speed });
     this.type = 'horde';
     this.count = count;
     this.maxCount = count;
+    this.variants = Array.from({ length: count }, () => Math.random() < 0.5 ? 'green' : 'pink');
   }
 
   takeDamage(damage) {
