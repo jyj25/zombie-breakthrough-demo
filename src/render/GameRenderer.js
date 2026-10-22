@@ -222,8 +222,10 @@ export class GameRenderer {
     const ctx = this.context, y = this.projectY(pickup.depth), x = this.projectX(pickup.lane, pickup.depth), scale = 0.34 + pickup.depth * 0.85;
     const image = pickup.weaponKey === 'fork' ? this.images[pickup.weaponVariant === 'pink' ? 'forkPink' : 'forkBlue'] : this.images[pickup.weaponKey], size = 43 * scale;
     if (image?.complete && image.naturalWidth) {
-      if (pickup.weaponKey === 'sword') ctx.drawImage(image, x - size * .9, y - size * .36, size * 1.8, size * .72);
-      else ctx.drawImage(image, x - size * 0.43, y - size * 0.55, size * 0.86, size * 1.1);
+      const bounds = {
+        bowl: [0.43, 0.55], fork: [0.86, 1.1], stick: [0.43, 1.05], sword: [0.95, 0.42],
+      }[pickup.weaponKey] || [0.86, 1.1];
+      ctx.drawImage(image, x - size * bounds[0] / 2, y - size * bounds[1] / 2, size * bounds[0], size * bounds[1]);
     }
     ctx.fillStyle = '#423729'; ctx.font = `900 ${Math.max(10, 12 * scale)}px system-ui`; ctx.textAlign = 'center';
     ctx.fillText('+' + pickup.bonus, x, y - size * 0.74);
@@ -282,13 +284,18 @@ export class GameRenderer {
     const [fur, accent] = palettes[kind] || palettes.white;
     ctx.save(); ctx.translate(x, y + bob); ctx.scale(scale, scale);
     // Tiny paws and soft pear-shaped body.
-    ctx.fillStyle = '#a47855'; ctx.beginPath(); ctx.ellipse(-7, -2, 3, 5, 0, 0, Math.PI * 2); ctx.ellipse(7, -2, 3, 5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = fur; ctx.strokeStyle = '#6c5144'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.ellipse(0, -15, 12, 16, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(-8, -26, 4, 5, 0, 0, Math.PI * 2); ctx.ellipse(8, -26, 4, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Soft layered shading and a fuller silhouette bring the crew closer to the supplied 2D art.
+    const body = ctx.createRadialGradient(-5, -29, 2, 0, -18, 23);
+    body.addColorStop(0, '#ffffff'); body.addColorStop(0.58, fur); body.addColorStop(1, kind === 'kurimanju' ? '#a77d60' : '#ddcec0');
+    ctx.fillStyle = '#a47855'; ctx.beginPath(); ctx.ellipse(-8, -1, 3.5, 5, 0, 0, Math.PI * 2); ctx.ellipse(8, -1, 3.5, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = body; ctx.strokeStyle = '#4b3834'; ctx.lineWidth = 1.35;
+    ctx.beginPath(); ctx.ellipse(0, -17, 14.5, 18.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(-9, -29, 4.4, 5.2, -0.12, 0, Math.PI * 2); ctx.ellipse(9, -29, 4.4, 5.2, 0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(-10, -33, 1.6, 2.1, 0, 0, Math.PI * 2); ctx.ellipse(8, -33, 1.6, 2.1, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = accent;
     if (kind === 'usagi') {
-      ctx.beginPath(); ctx.ellipse(-4, -42, 3.1, 10, -0.14, 0, Math.PI * 2); ctx.ellipse(4, -42, 3.1, 10, 0.14, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-5, -43, 3.4, 11, -0.14, 0, Math.PI * 2); ctx.ellipse(5, -43, 3.4, 11, 0.14, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#efb3b3'; ctx.beginPath(); ctx.ellipse(-5, -43, 1.3, 7, -0.14, 0, Math.PI * 2); ctx.ellipse(5, -43, 1.3, 7, 0.14, 0, Math.PI * 2); ctx.fill();
     } else if (kind === 'hachiwore') {
       ctx.beginPath(); ctx.moveTo(-11, -31); ctx.lineTo(-9, -38); ctx.lineTo(-2, -32); ctx.lineTo(2, -38); ctx.lineTo(11, -31); ctx.closePath(); ctx.fill();
     } else if (kind === 'chiikawa') {
@@ -300,9 +307,12 @@ export class GameRenderer {
     } else if (kind === 'kurimanju') {
       ctx.beginPath(); ctx.arc(0, -25, 10, Math.PI, Math.PI * 2); ctx.fill();
     }
-    ctx.fillStyle = '#3b302c'; ctx.beginPath(); ctx.ellipse(-4.3, -19, 1.2, 2.1, 0, 0, Math.PI * 2); ctx.ellipse(4.3, -19, 1.2, 2.1, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#edaaa1'; ctx.beginPath(); ctx.ellipse(-7.2, -14.5, 2.3, 1.4, 0, 0, Math.PI * 2); ctx.ellipse(7.2, -14.5, 2.3, 1.4, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#4d3832'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-1.5, -14); ctx.quadraticCurveTo(0, -12, 1.5, -14); ctx.stroke();
+    ctx.fillStyle = '#edaaa188'; ctx.beginPath(); ctx.ellipse(-8.5, -15, 3.5, 2.3, 0, 0, Math.PI * 2); ctx.ellipse(8.5, -15, 3.5, 2.3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3b302c'; ctx.beginPath(); ctx.ellipse(-4.4, -21, 1.55, 2.5, 0, 0, Math.PI * 2); ctx.ellipse(4.4, -21, 1.55, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-4.7, -22, 0.65, 0, Math.PI * 2); ctx.arc(4.1, -22, 0.65, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#3b302c'; ctx.beginPath(); ctx.arc(0, -17, 1.15, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#4d3832'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(-2, -16); ctx.quadraticCurveTo(0, -13, 2, -16); ctx.stroke();
+    ctx.strokeStyle = '#805d50'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-10.5, -18); ctx.lineTo(-14, -19); ctx.moveTo(10.5, -18); ctx.lineTo(14, -19); ctx.stroke();
     ctx.restore();
   }
 
@@ -311,8 +321,12 @@ export class GameRenderer {
     const ctx = this.context, image = player.weaponKey === 'fork' ? this.images[player.weaponVariant === 'pink' ? 'forkPink' : 'forkBlue'] : this.images[player.weaponKey], size = 30 * scale;
     if (!image?.complete || !image.naturalWidth) return;
     const px = x + 13 * scale, py = y - 35 * scale;
-    if (player.weaponKey === 'sword') ctx.drawImage(image, px - size * .9, py - size * .4, size * 1.8, size * .8);
-    else { ctx.save(); ctx.translate(px, py); ctx.rotate(-0.32); ctx.drawImage(image, -size * 0.28, -size * 0.82, size * 0.56, size * 1.64); ctx.restore(); }
+    if (player.weaponKey === 'sword') ctx.drawImage(image, px - size * .48, py - size * .2, size * .96, size * .4);
+    else {
+      const width = player.weaponKey === 'bowl' || player.weaponKey === 'stick' ? 0.28 : 0.56;
+      const height = player.weaponKey === 'bowl' ? 0.82 : 1.64;
+      ctx.save(); ctx.translate(px, py); ctx.rotate(-0.32); ctx.drawImage(image, -size * width / 2, -size * height / 2, size * width, size * height); ctx.restore();
+    }
   }
 
   drawProjectile(projectile) {
