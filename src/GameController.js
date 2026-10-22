@@ -102,7 +102,7 @@ export class GameController {
   randomValue(values) { return values[Math.floor(Math.random() * values.length)]; }
 
   trySpawnSiren() {
-    if (this.boss || this.sirenSpawned || this.player.power < GAME_CONFIG.sirenSpawnPower) return false;
+    if (this.boss || this.sirenSpawned || this.player.power * this.player.shotMultiplier <= GAME_CONFIG.sirenSpawnEffectivePower) return false;
     this.sirenSpawned = true;
     this.boss = new Boss(GAME_CONFIG.sirenHealth);
     this.entities = [];
@@ -157,6 +157,7 @@ export class GameController {
         if (entity.rewardType === 'multiplier') {
           const multiplier = this.player.setShotMultiplier(entity.value);
           this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `×${multiplier} 발사`, '#e3c8ff');
+          this.trySpawnSiren();
         } else {
           const increase = this.player.addPower(entity.value);
           this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `공격력 +${increase}`, '#fff0a8');

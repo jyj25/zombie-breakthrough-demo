@@ -23,8 +23,8 @@ export class GameUI {
     this.overlay.hidden = false;
     if (state === GAME_STATE.READY) {
       this.title.textContent = '세이렌 토벌';
-      this.message.innerHTML = '해변을 달리며 공격력 게이트와 무기를 모으세요.<br>공격력 9,999에 도달하면 세이렌이 나타납니다.<br><strong>세이렌 체력 99,999 · 최대 발사 ×3</strong>';
-      this.image.src = './assets/game/flight.png';
+      this.message.innerHTML = '해변을 달리며 공격력 게이트와 무기를 모으세요.<br>공격력 × 발사 배수가 9,999를 넘으면 세이렌이 나타납니다.<br><strong>세이렌 체력 99,999 · 최대 발사 ×3</strong>';
+      this.image.src = './assets/game/flight-cutout.png';
       this.image.alt = '토벌 장소로 날아가는 치이카와 토벌대';
       this.image.hidden = false;
       this.startButton.textContent = '토벌 시작';

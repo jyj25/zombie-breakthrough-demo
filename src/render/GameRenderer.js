@@ -8,8 +8,9 @@ export class GameRenderer {
     this.pixelRatio = 1;
     this.images = {};
     const files = {
-      flight: 'flight.png', siren: 'siren.png', win: 'siren-win.png', ocean: 'ocean.png',
-      bowl: 'weapon-bowl.png', fork: 'weapon-pink-blue.png', stick: 'weapon-stick.png', sword: 'weapon-swords.png',
+      flight: 'flight-cutout.png', siren: 'siren.png', win: 'siren-win.png', ocean: 'ocean.png',
+      bowl: 'weapon-bowl-cutout.png', forkPink: 'weapon-fork-pink.svg', forkBlue: 'weapon-fork-blue.svg',
+      stick: 'weapon-stick.svg', sword: 'weapon-sword.svg',
     };
     for (const [key, file] of Object.entries(files)) {
       const image = new Image();
@@ -70,24 +71,66 @@ export class GameRenderer {
   }
 
   drawBeach(tick) {
+    this.drawNaturalCoast(tick, false);
+  }
+
+  // Soft scenic layers and seeded organic details keep the play area legible without a hard-edged road.
+  drawNaturalCoast(tick, dusk) {
     const ctx = this.context, w = this.width, h = this.height;
-    const sky = ctx.createLinearGradient(0, 0, 0, h * 0.55);
-    sky.addColorStop(0, '#a9e2f0'); sky.addColorStop(1, '#e9f5d9');
+    const sky = ctx.createLinearGradient(0, 0, 0, h * 0.6);
+    sky.addColorStop(0, dusk ? '#405b84' : '#a8ddec'); sky.addColorStop(0.72, dusk ? '#b6d4d0' : '#fff0ce'); sky.addColorStop(1, dusk ? '#88bac0' : '#c8e9d4');
     ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#fff6bd'; ctx.beginPath(); ctx.arc(w * 0.16, h * 0.13, w * 0.065, 0, Math.PI * 2); ctx.fill();
-    this.drawCloud(w * 0.46, h * 0.14, 1.05); this.drawCloud(w * 0.86, h * 0.25, 0.72);
-    ctx.fillStyle = '#6cc8d2'; ctx.fillRect(0, h * 0.36, w, h * 0.34);
-    ctx.fillStyle = '#b5e7dc';
-    for (let i = 0; i < 7; i++) {
-      const x = ((i * 81 - tick * 0.12) % (w + 100) + w + 100) % (w + 100) - 30;
-      ctx.globalAlpha = 0.28 + (i % 3) * 0.12; ctx.fillRect(x, h * (0.40 + (i % 4) * 0.055), 32 + (i % 3) * 17, 2);
+    const sun = ctx.createRadialGradient(w * 0.79, h * 0.17, 1, w * 0.79, h * 0.17, w * 0.16);
+    sun.addColorStop(0, dusk ? '#ffe3ba66' : '#fff8d9dd'); sun.addColorStop(1, '#fff8d900');
+    ctx.fillStyle = sun; ctx.fillRect(w * 0.58, 0, w * 0.42, h * 0.38);
+    this.drawCloud(w * 0.32, h * 0.16, 0.8); this.drawCloud(w * 0.68, h * 0.24, 0.55);
+    // Distant island ridges.
+    ctx.fillStyle = dusk ? '#557e83' : '#8ab8a0'; ctx.beginPath(); ctx.moveTo(0, h * .39);
+    ctx.bezierCurveTo(w * .16, h * .31, w * .2, h * .36, w * .36, h * .34);
+    ctx.bezierCurveTo(w * .53, h * .3, w * .62, h * .39, w * .77, h * .33);
+    ctx.bezierCurveTo(w * .88, h * .29, w * .93, h * .34, w, h * .32); ctx.lineTo(w, h * .52); ctx.lineTo(0, h * .52); ctx.fill();
+    ctx.fillStyle = dusk ? '#386f80' : '#63bdc4'; ctx.fillRect(0, h * .38, w, h * .3);
+    for (let row = 0; row < 7; row++) {
+      const yy = h * (.405 + row * .035), phase = tick * (.009 + row * .001);
+      ctx.beginPath();
+      for (let x = -8; x <= w + 8; x += 8) {
+        const y = yy + Math.sin(x * .035 + phase + row) * (1.3 + row * .35) + Math.sin(x * .012 - phase) * 1.2;
+        if (x === -8) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = dusk ? `rgba(199,235,224,${.12 + row * .018})` : `rgba(224,255,238,${.16 + row * .018})`;
+      ctx.lineWidth = 1 + row * .18; ctx.stroke();
+    }
+    // Meandering foam line and a softly blended shore.
+    const shore = h * .625;
+    ctx.fillStyle = dusk ? '#d0d4bc' : '#f0d99f'; ctx.beginPath(); ctx.moveTo(0, shore);
+    ctx.bezierCurveTo(w * .2, shore - 26, w * .34, shore + 18, w * .53, shore - 5);
+    ctx.bezierCurveTo(w * .73, shore - 31, w * .85, shore + 15, w, shore - 7); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = dusk ? '#e3eee0aa' : '#fff8dfcc'; ctx.lineWidth = Math.max(4, w * .022); ctx.lineCap = 'round'; ctx.beginPath();
+    ctx.moveTo(-10, shore - 3); ctx.bezierCurveTo(w * .18, shore - 28, w * .35, shore + 15, w * .53, shore - 7);
+    ctx.bezierCurveTo(w * .74, shore - 30, w * .86, shore + 12, w + 10, shore - 9); ctx.stroke();
+    ctx.strokeStyle = '#fffdf277'; ctx.lineWidth = 1.3; ctx.stroke();
+    // A thin wet-sand wash.
+    ctx.fillStyle = dusk ? '#b4c5aa88' : '#fff1cb99'; ctx.beginPath();
+    ctx.moveTo(0, shore + 18); ctx.quadraticCurveTo(w * .25, shore - 2, w * .48, shore + 20);
+    ctx.quadraticCurveTo(w * .75, shore + 38, w, shore + 10); ctx.lineTo(w, shore + 67); ctx.quadraticCurveTo(w * .54, shore + 82, 0, shore + 58); ctx.fill();
+    // Stable irregular shells, pebbles and grass tufts; no frame-to-frame flicker.
+    for (let i = 0; i < 92; i++) {
+      const seed = (i * 73.17 + 19.3) % 997, x = (seed * 37.7) % w;
+      const y = h * .69 + ((seed * 13.9) % (h * .28));
+      const radius = .7 + (i % 5) * .38;
+      ctx.globalAlpha = .12 + (i % 4) * .035; ctx.fillStyle = i % 3 ? '#916f51' : '#fff8dc';
+      ctx.beginPath(); ctx.ellipse(x, y, radius * 1.5, radius, (i % 7) * .22, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
-    ctx.fillStyle = '#f5d696'; ctx.beginPath();
-    ctx.moveTo(0, h * 0.61); ctx.quadraticCurveTo(w * 0.5, h * 0.53, w, h * 0.62); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#f9e5b4'; ctx.beginPath(); ctx.moveTo(0, h * 0.72); ctx.quadraticCurveTo(w * 0.52, h * 0.62, w, h * 0.73); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
-    this.drawPalm(w * 0.04, h * 0.55, 0.72); this.drawPalm(w * 0.98, h * 0.52, 0.62);
-    this.drawTrack(tick);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 4; i++) {
+        const x = side < 0 ? w * (.03 + i * .035) : w * (.97 - i * .035), y = h * (.68 + (i % 2) * .13);
+        ctx.strokeStyle = dusk ? '#597c57aa' : '#62986a99'; ctx.lineWidth = 1.4;
+        for (let blade = -1; blade <= 1; blade++) { ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + blade * 8, y - 11, x + blade * 13, y - 19 - (i % 3) * 3); ctx.stroke(); }
+      }
+    }
+    const vignette = ctx.createRadialGradient(w * .5, h * .5, h * .2, w * .5, h * .5, h * .85);
+    vignette.addColorStop(0, '#ffffff00'); vignette.addColorStop(1, dusk ? '#09284c22' : '#3a674322'); ctx.fillStyle = vignette; ctx.fillRect(0, 0, w, h);
   }
 
   drawCloud(x, y, scale) {
@@ -110,15 +153,7 @@ export class GameRenderer {
   }
 
   drawTrack(tick) {
-    const ctx = this.context, w = this.width, h = this.height, top = h * 0.50;
-    ctx.fillStyle = '#e8cc92'; ctx.beginPath(); ctx.moveTo(w * 0.43, top); ctx.lineTo(w * 0.57, top);
-    ctx.lineTo(w * 0.96, h); ctx.lineTo(w * 0.04, h); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#f8e6bd'; ctx.beginPath(); ctx.moveTo(w * 0.445, top); ctx.lineTo(w * 0.555, top);
-    ctx.lineTo(w * 0.92, h); ctx.lineTo(w * 0.08, h); ctx.closePath(); ctx.fill();
-    for (let i = 0; i < 10; i++) {
-      const depth = ((i / 10 + tick * 0.002) % 1), y = this.projectY(depth), size = 1.2 + depth * 3;
-      ctx.fillStyle = '#fffdf2aa'; ctx.fillRect(w / 2 - size / 2, y, size, 3 + depth * 10);
-    }
+    // The lane geometry remains for movement and collision projection; the beach itself stays open and organic.
   }
 
   drawSirenSea(tick, bossAge = 0) {
@@ -132,21 +167,8 @@ export class GameRenderer {
         ctx.drawImage(image, (w - iw) / 2, (h - ih) / 2, iw, ih);
       }
       ctx.fillStyle = '#09213d42'; ctx.fillRect(0, 0, w, h);
-    } else {
-      // The painted ocean arrival gives way to a calm blue beach arena, like the seaside cover.
-      const dusk = ctx.createLinearGradient(0, 0, 0, h);
-      dusk.addColorStop(0, '#506d9b'); dusk.addColorStop(0.48, '#84c4d4'); dusk.addColorStop(0.49, '#318cab'); dusk.addColorStop(1, '#123f70');
-      ctx.fillStyle = dusk; ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = '#b1e4e4aa'; ctx.beginPath(); ctx.ellipse(w * 0.51, h * 0.47, w * 0.36, h * 0.04, 0, 0, Math.PI * 2); ctx.fill();
-      for (let i = 0; i < 15; i++) {
-        const x = ((i * 61 - tick * 0.17) % (w + 70) + w + 70) % (w + 70) - 35;
-        ctx.fillStyle = i % 2 ? '#b9edf466' : '#fff5d955';
-        ctx.fillRect(x, h * (0.54 + (i % 5) * 0.052), 13 + i % 4 * 10, 2);
-      }
-      ctx.fillStyle = '#e9d6a5'; ctx.beginPath(); ctx.moveTo(0, h * 0.73); ctx.quadraticCurveTo(w * 0.5, h * 0.66, w, h * 0.75); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
-    }
-    ctx.fillStyle = '#09213d22'; ctx.fillRect(0, 0, w, h);
-    this.drawTrack(tick);
+    } else this.drawNaturalCoast(tick, true);
+    if (bossAge < 75) this.drawTrack(tick);
   }
 
   drawFlightIntro(introTick) {
@@ -176,15 +198,10 @@ export class GameRenderer {
 
   drawWeapon(pickup) {
     const ctx = this.context, y = this.projectY(pickup.depth), x = this.projectX(pickup.lane, pickup.depth), scale = 0.34 + pickup.depth * 0.85;
-    const image = this.images[pickup.weaponKey], size = 43 * scale;
-    ctx.fillStyle = '#fff9e9'; ctx.beginPath(); ctx.ellipse(x, y, size * 0.64, size * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+    const image = pickup.weaponKey === 'fork' ? this.images[pickup.weaponVariant === 'pink' ? 'forkPink' : 'forkBlue'] : this.images[pickup.weaponKey], size = 43 * scale;
     if (image?.complete && image.naturalWidth) {
-      if (pickup.weaponKey === 'fork') {
-        const sx = pickup.weaponVariant === 'pink' ? 0 : image.naturalWidth / 2;
-        ctx.drawImage(image, sx, 0, image.naturalWidth / 2, image.naturalHeight, x - size * 0.42, y - size * 0.57, size * 0.84, size * 1.14);
-      } else if (pickup.weaponKey === 'sword') {
-        ctx.drawImage(image, image.naturalWidth * 0.34, 0, image.naturalWidth * 0.32, image.naturalHeight, x - size * 0.47, y - size * 0.34, size * 0.94, size * 0.68);
-      } else ctx.drawImage(image, x - size * 0.43, y - size * 0.55, size * 0.86, size * 1.1);
+      if (pickup.weaponKey === 'sword') ctx.drawImage(image, x - size * .9, y - size * .36, size * 1.8, size * .72);
+      else ctx.drawImage(image, x - size * 0.43, y - size * 0.55, size * 0.86, size * 1.1);
     }
     ctx.fillStyle = '#423729'; ctx.font = `900 ${Math.max(10, 12 * scale)}px system-ui`; ctx.textAlign = 'center';
     ctx.fillText('+' + pickup.bonus, x, y - size * 0.74);
@@ -274,15 +291,11 @@ export class GameRenderer {
 
   drawHeldWeapon(player, x, y, scale) {
     if (!player.weaponKey) return;
-    const ctx = this.context, image = this.images[player.weaponKey], size = 30 * scale;
+    const ctx = this.context, image = player.weaponKey === 'fork' ? this.images[player.weaponVariant === 'pink' ? 'forkPink' : 'forkBlue'] : this.images[player.weaponKey], size = 30 * scale;
     if (!image?.complete || !image.naturalWidth) return;
     const px = x + 13 * scale, py = y - 35 * scale;
-    if (player.weaponKey === 'fork') {
-      const sx = player.weaponVariant === 'pink' ? 0 : image.naturalWidth / 2;
-      ctx.drawImage(image, sx, 0, image.naturalWidth / 2, image.naturalHeight, px - size * 0.3, py - size * 0.7, size * 0.6, size * 1.4);
-    } else if (player.weaponKey === 'sword') {
-      ctx.drawImage(image, image.naturalWidth * 0.34, 0, image.naturalWidth * 0.32, image.naturalHeight, px - size * 0.65, py - size * 0.35, size * 1.3, size * 0.7);
-    } else ctx.drawImage(image, px - size * 0.35, py - size * 0.7, size * 0.7, size * 1.4);
+    if (player.weaponKey === 'sword') ctx.drawImage(image, px - size * .9, py - size * .4, size * 1.8, size * .8);
+    else { ctx.save(); ctx.translate(px, py); ctx.rotate(-0.32); ctx.drawImage(image, -size * 0.28, -size * 0.82, size * 0.56, size * 1.64); ctx.restore(); }
   }
 
   drawProjectile(projectile) {
