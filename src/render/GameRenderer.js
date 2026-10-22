@@ -56,45 +56,86 @@ export class GameRenderer {
   drawRoad(tick) {
     const ctx = this.context, w = this.width, h = this.height, hy = h * 0.055;
     const background = ctx.createLinearGradient(0, 0, 0, h);
-    background.addColorStop(0, '#786d61'); background.addColorStop(0.32, '#8e806c');
-    background.addColorStop(0.321, '#61745c'); background.addColorStop(1, '#334c41');
+    background.addColorStop(0, '#70a8b4'); background.addColorStop(0.24, '#9ac6b1');
+    background.addColorStop(0.241, '#648d67'); background.addColorStop(1, '#285746');
     ctx.fillStyle = background; ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = '#54685d'; ctx.beginPath();
+    this.drawScenery(tick, hy);
+    ctx.fillStyle = '#39434a'; ctx.beginPath();
     ctx.moveTo(w / 2 - w * 0.16, hy); ctx.lineTo(w / 2 + w * 0.16, hy);
     ctx.lineTo(w / 2 + w * 0.53, h); ctx.lineTo(w / 2 - w * 0.53, h); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#bac1bd'; ctx.beginPath();
-    ctx.moveTo(w / 2 - w * 0.14, hy); ctx.lineTo(w / 2 + w * 0.14, hy);
-    ctx.lineTo(w / 2 + w * 0.45, h); ctx.lineTo(w / 2 - w * 0.45, h); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#69747b'; ctx.beginPath();
+    ctx.moveTo(w / 2 - w * 0.145, hy); ctx.lineTo(w / 2 + w * 0.145, hy);
+    ctx.lineTo(w / 2 + w * 0.46, h); ctx.lineTo(w / 2 - w * 0.46, h); ctx.closePath(); ctx.fill();
+    const roadShade = ctx.createLinearGradient(0, hy, 0, h);
+    roadShade.addColorStop(0, '#78848a'); roadShade.addColorStop(1, '#505e68');
+    ctx.fillStyle = roadShade; ctx.beginPath();
+    ctx.moveTo(w / 2 - w * 0.133, hy); ctx.lineTo(w / 2 + w * 0.133, hy);
+    ctx.lineTo(w / 2 + w * 0.438, h); ctx.lineTo(w / 2 - w * 0.438, h); ctx.closePath(); ctx.fill();
+    // Light concrete shoulders and red bridge rails echo the reference runner.
     for (const side of [-1, 1]) {
-      ctx.strokeStyle = '#737d7d'; ctx.lineWidth = 5; ctx.beginPath();
-      ctx.moveTo(w / 2 + side * w * 0.15, hy); ctx.lineTo(w / 2 + side * w * 0.48, h); ctx.stroke();
-      ctx.strokeStyle = '#d4d8d3'; ctx.lineWidth = 2; ctx.beginPath();
-      ctx.moveTo(w / 2 + side * w * 0.137, hy); ctx.lineTo(w / 2 + side * w * 0.455, h); ctx.stroke();
+      ctx.strokeStyle = '#d4d4c8'; ctx.lineWidth = Math.max(3, w * 0.018); ctx.beginPath();
+      ctx.moveTo(w / 2 + side * w * 0.145, hy); ctx.lineTo(w / 2 + side * w * 0.465, h); ctx.stroke();
+      ctx.strokeStyle = '#e34846'; ctx.lineWidth = Math.max(2, w * 0.012); ctx.beginPath();
+      ctx.moveTo(w / 2 + side * w * 0.158, hy); ctx.lineTo(w / 2 + side * w * 0.51, h); ctx.stroke();
     }
-    for (let i = 0; i < 9; i++) {
-      const depth = ((i / 9 + tick * 0.003) % 1), y = this.projectY(depth), size = 1 + depth * 3;
-      ctx.fillStyle = '#f4f2df'; ctx.fillRect(w / 2 - size, y, size * 2, 5 + depth * 14);
+    // Dashed center stripe follows perspective and scrolls toward the runner.
+    for (let i = 0; i < 11; i++) {
+      const depth = ((i / 11 + tick * 0.0024) % 1), y = this.projectY(depth), size = 1.2 + depth * 2.5;
+      ctx.fillStyle = '#f5edcd'; ctx.globalAlpha = 0.48 + depth * 0.5;
+      ctx.fillRect(w / 2 - size * 0.5, y, size, 3 + depth * 14); ctx.globalAlpha = 1;
     }
-    for (let i = 0; i < 12; i++) {
-      const depth = ((i * 0.137 + tick * 0.00055) % 1), y = this.projectY(depth), size = 4 + depth * 12;
-      const x = w / 2 + (i % 2 ? 1 : -1) * (this.roadHalf(y) + size * 1.8);
-      ctx.fillStyle = ['#68745c', '#8b8877', '#566958'][i % 3]; ctx.beginPath();
-      ctx.moveTo(x - size, y); ctx.lineTo(x - size * 0.4, y - size); ctx.lineTo(x + size * 0.65, y - size * 0.55);
-      ctx.lineTo(x + size, y + size * 0.3); ctx.lineTo(x - size * 0.3, y + size * 0.55); ctx.fill();
+    this.drawBridge(tick, hy);
+  }
+
+  drawScenery(tick, hy) {
+    const ctx = this.context, w = this.width, h = this.height;
+    // Low polygon hills, water glints, and planted verge add depth without hiding play.
+    ctx.fillStyle = '#83b59a'; ctx.beginPath(); ctx.moveTo(0, hy * 2.4);
+    ctx.lineTo(w * 0.15, hy * 1.25); ctx.lineTo(w * 0.31, hy * 2.6); ctx.lineTo(w * 0.48, hy * 1.4);
+    ctx.lineTo(w * 0.64, hy * 2.5); ctx.lineTo(w * 0.82, hy * 1.3); ctx.lineTo(w, hy * 2.2); ctx.lineTo(w, hy * 5); ctx.lineTo(0, hy * 5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#6b9e80'; ctx.fillRect(0, hy * 4, w, h * 0.72);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 8; i++) {
+        const depth = ((i / 8 + tick * 0.0011) % 1), y = this.projectY(depth);
+        const size = 3 + depth * 12, x = w / 2 + side * (this.roadHalf(y) + size * 2.7);
+        // Rounded low-poly shrubs sit beyond the bridge shoulder.
+        ctx.fillStyle = i % 2 ? '#397b51' : '#4d8954'; ctx.beginPath();
+        ctx.arc(x, y - size * 0.18, size * 0.72, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#8a754e'; ctx.fillRect(x - size * 0.12, y + size * 0.3, size * 0.24, size * 0.62);
+      }
+    }
+  }
+
+  drawBridge(tick, hy) {
+    const ctx = this.context, w = this.width, h = this.height;
+    // Repeating suspension frames create a clear forward perspective.
+    for (let i = 0; i < 5; i++) {
+      const depth = ((i / 5 + tick * 0.0015) % 1), y = this.projectY(depth);
+      const half = this.roadHalf(y) * 1.08, postH = 10 + depth * 50;
+      ctx.fillStyle = '#a83235';
+      ctx.fillRect(w / 2 - half - 3, y - postH, Math.max(3, depth * 7), postH);
+      ctx.fillRect(w / 2 + half - 2, y - postH, Math.max(3, depth * 7), postH);
+      ctx.fillStyle = '#f27668'; ctx.fillRect(w / 2 - half - 3, y - postH, Math.max(2, depth * 3), postH);
+      ctx.fillRect(w / 2 + half - 2, y - postH, Math.max(2, depth * 3), postH);
+      ctx.strokeStyle = '#e6675b'; ctx.lineWidth = 0.6 + depth * 1.8;
+      ctx.beginPath(); ctx.moveTo(w / 2 - half, y - postH); ctx.lineTo(w / 2 - this.roadHalf(hy) * 1.08, hy * 1.8);
+      ctx.moveTo(w / 2 + half, y - postH); ctx.lineTo(w / 2 + this.roadHalf(hy) * 1.08, hy * 1.8); ctx.stroke();
     }
   }
 
   drawGate(gate) {
-    const ctx = this.context, y = this.projectY(gate.depth), half = this.roadHalf(y) * 0.94;
-    const scale = 0.34 + gate.depth * 0.8, bar = Math.max(7, scale * 12), center = this.width / 2;
-    ctx.fillStyle = '#76878d'; ctx.fillRect(center - half, y - bar * 0.65, bar * 0.45, bar * 1.8);
-    ctx.fillRect(center + half - bar * 0.45, y - bar * 0.65, bar * 0.45, bar * 1.8);
-    ctx.fillStyle = '#252d34'; ctx.fillRect(center - half, y - bar * 0.55, half * 2, bar * 0.5);
-    for (const [x, value, color] of [[center - half * 0.5, gate.leftBonus, '#e4a83d'], [center + half * 0.5, gate.rightBonus, '#38a5d5']]) {
-      ctx.fillStyle = color; ctx.globalAlpha = 0.9; ctx.fillRect(x - half * 0.47, y - bar * 0.05, half * 0.94, bar * 0.75);
-      ctx.globalAlpha = 1; ctx.fillStyle = '#fff'; ctx.font = `900 ${Math.max(12, scale * 21)}px system-ui`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('+' + value, x, y + bar * 0.3);
-    }
+    const ctx = this.context, y = this.projectY(gate.depth), half = this.roadHalf(y) * 0.92;
+    const scale = 0.34 + gate.depth * 0.8, bar = Math.max(12, scale * 28), center = this.width / 2;
+    ctx.fillStyle = '#29343a'; ctx.fillRect(center - half, y - bar * 0.7, half * 2, bar * 1.35);
+    const gw = half * 0.95, gh = bar * 0.9;
+    const label = gate.rewardType === 'multiplier' ? `×${gate.value}` : `+${gate.value}`;
+    const color = gate.rewardType === 'multiplier' ? '#9b59c7' : '#18a987';
+    ctx.fillStyle = '#111b25'; ctx.beginPath(); ctx.roundRect(center - gw * 0.5 - 2, y - gh * 0.58 - 2, gw + 4, gh + 4, 6 * scale); ctx.fill();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(center - gw * 0.5, y - gh * 0.58, gw, gh, 5 * scale); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.font = `1000 ${Math.max(14, scale * 30)}px system-ui`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.shadowColor = '#17212a'; ctx.shadowBlur = 5;
+    ctx.fillText(label, center, y - gh * 0.1); ctx.shadowBlur = 0;
+    ctx.textBaseline = 'alphabetic';
   }
 
   drawWeapon(pickup) {
@@ -109,11 +150,15 @@ export class GameRenderer {
 
   drawZombie(x, y, size) {
     const ctx = this.context;
-    ctx.fillStyle = '#611f25'; ctx.beginPath(); ctx.ellipse(x, y + size * 0.38, size * 0.48, size * 0.19, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#c85554'; ctx.fillRect(x - size * 0.32, y - size * 0.12, size * 0.64, size * 0.52);
-    ctx.fillStyle = '#8fbd86'; ctx.beginPath(); ctx.arc(x, y - size * 0.2, size * 0.3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff49c'; ctx.fillRect(x - size * 0.16, y - size * 0.24, size * 0.09, size * 0.08); ctx.fillRect(x + size * 0.08, y - size * 0.24, size * 0.09, size * 0.08);
-    ctx.fillStyle = '#423b38'; ctx.fillRect(x - size * 0.22, y + size * 0.35, size * 0.16, size * 0.3); ctx.fillRect(x + size * 0.06, y + size * 0.35, size * 0.16, size * 0.3);
+    ctx.fillStyle = '#25312c'; ctx.beginPath(); ctx.ellipse(x, y + size * 0.48, size * 0.48, size * 0.17, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#343e42'; ctx.fillRect(x - size * 0.11, y + size * 0.23, size * 0.18, size * 0.3);
+    ctx.fillRect(x + size * 0.04, y + size * 0.23, size * 0.18, size * 0.3);
+    ctx.fillStyle = '#bd514d'; ctx.beginPath(); ctx.roundRect(x - size * 0.34, y - size * 0.12, size * 0.68, size * 0.47, size * 0.12); ctx.fill();
+    ctx.strokeStyle = '#91bd81'; ctx.lineWidth = Math.max(1, size * 0.12); ctx.lineCap = 'round'; ctx.beginPath();
+    ctx.moveTo(x - size * 0.25, y - size * 0.02); ctx.lineTo(x - size * 0.48, y + size * 0.12);
+    ctx.moveTo(x + size * 0.25, y - size * 0.02); ctx.lineTo(x + size * 0.46, y - size * 0.16); ctx.stroke();
+    ctx.fillStyle = '#9bbd80'; ctx.beginPath(); ctx.arc(x, y - size * 0.25, size * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f4dc8c'; ctx.beginPath(); ctx.arc(x - size * 0.12, y - size * 0.27, size * 0.045, 0, Math.PI * 2); ctx.arc(x + size * 0.12, y - size * 0.27, size * 0.045, 0, Math.PI * 2); ctx.fill();
   }
 
   drawHorde(horde) {
@@ -146,7 +191,8 @@ export class GameRenderer {
     for (const offset of player.crewOffsets) this.drawHuman(this.projectX(player.lane + offset, player.depth), y + 5 * scale, scale * 0.68, tick, '#2580c8', false);
     this.drawHuman(x, y, scale, tick, '#168ded', true);
     const ctx = this.context; ctx.fillStyle = '#102036dd'; ctx.fillRect(x - 32 * scale, y - 67 * scale, 64 * scale, 21 * scale);
-    ctx.fillStyle = '#fff'; ctx.font = `900 ${14 * scale}px system-ui`; ctx.textAlign = 'center'; ctx.fillText(player.power.toLocaleString(), x, y - 52 * scale);
+    const label = player.shotMultiplier > 1 ? `${player.power.toLocaleString()} ×${player.shotMultiplier}` : player.power.toLocaleString();
+    ctx.fillStyle = '#fff'; ctx.font = `900 ${14 * scale}px system-ui`; ctx.textAlign = 'center'; ctx.fillText(label, x, y - 52 * scale);
   }
 
   /** Clear human silhouette with a forward-pointing weapon; the player owns the attack. */

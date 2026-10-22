@@ -74,11 +74,10 @@ export class GameController {
   }
 
   spawnEntity() {
-    if (!this.boss && this.bossIndex < GAME_CONFIG.bossHealth.length && this.kills >= GAME_CONFIG.bossKillThresholds[this.bossIndex]) {
-      const index = this.bossIndex++;
-      this.boss = new Boss(GAME_CONFIG.bossNames[index], this.rollBossHealth(GAME_CONFIG.bossHealth[index]), index === 5);
-      this.wave = this.bossIndex + 1;
-      this.addPopup(this.renderer.width / 2, this.renderer.height * 0.28, `⚠ ${this.boss.name}`, '#ffe16a');
+    if (this.spawnFinalBossIfReady()) return;
+    const finalBossIndex = GAME_CONFIG.bossHealth.length - 1;
+    if (!this.boss && this.bossIndex < finalBossIndex && this.kills >= GAME_CONFIG.bossKillThresholds[this.bossIndex]) {
+      this.startBoss(this.bossIndex);
       return;
     }
     if (this.bossIndex >= 2 && Math.random() < 0.22) {
@@ -87,8 +86,11 @@ export class GameController {
       return;
     }
     if (Math.random() < 0.45) {
-      const values = GAME_CONFIG.gateValues;
-      this.entities.push(new PowerGate(this.randomValue(values), this.randomValue(values)));
+      if (Math.random() < GAME_CONFIG.multiplierGateChance) {
+        this.entities.push(new PowerGate('multiplier', Math.random() < 0.55 ? 2 : 3));
+      } else {
+        this.entities.push(new PowerGate('power', this.randomValue(GAME_CONFIG.gateValues)));
+      }
       return;
     }
     const count = 3 + Math.floor(Math.random() * 10);
@@ -98,14 +100,32 @@ export class GameController {
 
   randomValue(values) { return values[Math.floor(Math.random() * values.length)]; }
 
+  startBoss(index) {
+    this.bossIndex = index + 1;
+    this.boss = new Boss(GAME_CONFIG.bossNames[index], this.rollBossHealth(GAME_CONFIG.bossHealth[index]), index === GAME_CONFIG.bossHealth.length - 1);
+    this.wave = this.bossIndex + 1;
+    this.addPopup(this.renderer.width / 2, this.renderer.height * 0.28, `⚠ ${this.boss.name}`, '#ffe16a');
+  }
+
+  spawnFinalBossIfReady() {
+    const finalBossIndex = GAME_CONFIG.bossHealth.length - 1;
+    if (this.boss || this.bossIndex !== finalBossIndex || this.player.power < GAME_CONFIG.maxPower) return false;
+    this.startBoss(finalBossIndex);
+    return true;
+  }
+
   rollBossHealth(setting) {
     if (typeof setting === 'number') return setting;
     return setting.min + Math.floor(Math.random() * (setting.max - setting.min + 1));
   }
 
   fire() {
-    // The human runner holds and fires the weapon. Crew members are visual support.
-    this.projectiles.push(new Projectile(this.player.lane, this.player.depth - 0.045, this.player.power));
+    // Each member of a burst deals the player's attack power; x2/x3 gates raise shots per burst.
+    const count = this.player.shotMultiplier;
+    for (let index = 0; index < count; index++) {
+      const laneOffset = count === 1 ? 0 : (index - (count - 1) / 2) * 0.045;
+      this.projectiles.push(new Projectile(this.player.lane + laneOffset, this.player.depth - 0.045, this.player.power));
+    }
   }
 
   resolveProjectileHits() {
@@ -139,14 +159,21 @@ export class GameController {
     for (const entity of this.entities) {
       if (!entity.active) continue;
       if (entity.type === 'gate' && entity.depth >= this.player.depth - 0.025) {
-        const increase = this.player.addPower(entity.bonusForLane(this.player.lane));
         entity.active = false;
-        this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `+${increase}`, '#9cffbb');
+        if (entity.rewardType === 'multiplier') {
+          const multiplier = this.player.setShotMultiplier(entity.value);
+          this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `×${multiplier} 발사`, '#d8b5ff');
+        } else {
+          const increase = this.player.addPower(entity.value);
+          this.addPopup(this.renderer.projectX(this.player.lane, this.player.depth), this.renderer.projectY(this.player.depth) - 48, `+${increase}`, '#9cffbb');
+          this.spawnFinalBossIfReady();
+        }
       } else if (entity.type === 'weapon' && entity.depth >= this.player.depth - 0.025) {
         entity.active = false;
         if (Math.abs(this.player.lane - entity.lane) < 0.22) {
           const increase = this.player.addPower(entity.bonus);
           this.addPopup(this.renderer.projectX(entity.lane, entity.depth), this.renderer.projectY(this.player.depth) - 48, `무기 +${increase}`, '#9de1ff');
+          this.spawnFinalBossIfReady();
         }
       } else if (entity.type === 'horde' && entity.depth >= this.player.depth - 0.015) {
         if (this.overlapsPlayer(entity)) { this.finish(GAME_STATE.GAME_OVER); return; }
@@ -176,6 +203,7 @@ export class GameController {
     this.kills += 4;
     this.addPopup(this.renderer.width / 2, this.renderer.height * 0.35, `${defeated.name} 격파!`, '#ffe16a');
     if (defeated.finalBoss) this.finish(GAME_STATE.WON);
+    else this.spawnFinalBossIfReady();
   }
 
   addPopup(x, y, text, color) { this.popups.push({ x, y, text, color, life: 70 }); }
@@ -186,6 +214,6 @@ export class GameController {
     this.publishState();
   }
 
-  publishState() { this.ui.show(this.state, { power: this.player.power, wave: this.wave, kills: this.kills }); }
+  publishState() { this.ui.show(this.state, { power: this.player.power, multiplier: this.player.shotMultiplier, wave: this.wave, kills: this.kills }); }
   render() { this.renderer.draw(this); }
 }

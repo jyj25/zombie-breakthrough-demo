@@ -8,6 +8,7 @@ export class Player {
     this.lane = 0.5;
     this.targetLane = 0.5;
     this.power = 1;
+    this.shotMultiplier = 1;
     this.crewOffsets = [];
   }
 
@@ -19,6 +20,11 @@ export class Player {
     this.power = Math.min(GAME_CONFIG.maxPower, this.power + amount);
     this.updateCrew();
     return this.power - previous;
+  }
+
+  setShotMultiplier(value) {
+    this.shotMultiplier = Math.max(this.shotMultiplier, Math.min(3, value));
+    return this.shotMultiplier;
   }
 
   updateCrew() {

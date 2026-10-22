@@ -15,14 +15,15 @@ export class GameUI {
   }
 
   show(state, stats = {}) {
-    this.power.textContent = (stats.power ?? 1).toLocaleString();
+    const power = (stats.power ?? 1).toLocaleString();
+    this.power.textContent = stats.multiplier > 1 ? `${power} ×${stats.multiplier}` : power;
     this.wave.textContent = `${Math.min(stats.wave ?? 1, 6)} / 6`;
     this.kills.textContent = String(stats.kills ?? 0);
     if (state === GAME_STATE.PLAYING) { this.overlay.hidden = true; return; }
     this.overlay.hidden = false;
     if (state === GAME_STATE.READY) {
       this.title.textContent = '좀비 돌파';
-      this.message.innerHTML = '통로를 달리며 좀비 무리를 물리치고<br>숫자 게이트를 골라 공격력을 키우세요.<br><strong>최종 보스 체력 99,999 · 공격력 최대 9,999</strong>';
+      this.message.innerHTML = '통로를 달리며 좀비 무리를 물리치고<br>단일 게이트를 통과해 공격력을 키우세요.<br>×2·×3 게이트는 한 번에 여러 발을 발사합니다.<br><strong>최종 보스는 공격력 9,999에서 등장</strong>';
       this.startButton.textContent = '게임 시작';
     } else if (state === GAME_STATE.GAME_OVER) {
       this.title.textContent = '게임 오버';
