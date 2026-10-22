@@ -21,6 +21,7 @@ export class GameController {
     this.wave = 1;
     this.kills = 0;
     this.bossIndex = 0;
+    this.finalBossSpawned = false;
     this.boss = null;
     this.entities = [];
     this.projectiles = [];
@@ -38,6 +39,7 @@ export class GameController {
     this.player.reset();
     this.state = GAME_STATE.PLAYING;
     this.tick = this.spawnTimer = this.shotTimer = this.wave = this.kills = this.bossIndex = 0;
+    this.finalBossSpawned = false;
     this.wave = 1;
     this.boss = null;
     this.entities = [];
@@ -101,6 +103,7 @@ export class GameController {
   randomValue(values) { return values[Math.floor(Math.random() * values.length)]; }
 
   startBoss(index) {
+    if (index === GAME_CONFIG.bossHealth.length - 1) this.finalBossSpawned = true;
     this.bossIndex = index + 1;
     this.boss = new Boss(GAME_CONFIG.bossNames[index], this.rollBossHealth(GAME_CONFIG.bossHealth[index]), index === GAME_CONFIG.bossHealth.length - 1);
     this.wave = this.bossIndex + 1;
@@ -109,7 +112,7 @@ export class GameController {
 
   spawnFinalBossIfReady() {
     const finalBossIndex = GAME_CONFIG.bossHealth.length - 1;
-    if (this.boss || this.bossIndex !== finalBossIndex || this.player.power < GAME_CONFIG.maxPower) return false;
+    if (this.boss || this.finalBossSpawned || this.player.power < GAME_CONFIG.maxPower) return false;
     this.startBoss(finalBossIndex);
     return true;
   }
